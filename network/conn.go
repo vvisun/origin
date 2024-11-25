@@ -111,15 +111,15 @@ func (netConn *NetConn) doWrite(b []byte) error {
 }
 
 // b must not be modified by the others goroutines
-func (netConn *NetConn) Write(b []byte) error {
+func (netConn *NetConn) Write(b []byte) (int,error) {
 	netConn.Lock()
 	defer netConn.Unlock()
 	if atomic.LoadInt32(&netConn.closeFlag) == 1 || b == nil {
 		netConn.ReleaseReadMsg(b)
-		return errors.New("conn is close")
+		return 0,errors.New("conn is close")
 	}
 
-	return netConn.doWrite(b)
+	return len(b),netConn.doWrite(b)
 }
 
 func (netConn *NetConn) Read(b []byte) (int, error) {
@@ -150,7 +150,7 @@ func (netConn *NetConn) WriteMsg(args ...[]byte) error {
 	if atomic.LoadInt32(&netConn.closeFlag) == 1 {
 		return errors.New("conn is close")
 	}
-	return netConn.msgParser.Write(netConn.conn, args...)
+	return netConn.msgParser.Write(netConn, args...)
 }
 
 func (netConn *NetConn) WriteRawMsg(args []byte) error {
@@ -158,7 +158,8 @@ func (netConn *NetConn) WriteRawMsg(args []byte) error {
 		return errors.New("conn is close")
 	}
 
-	return netConn.Write(args)
+	_,err:= netConn.Write(args)
+	return err
 }
 
 func (netConn *NetConn) IsConnected() bool {
