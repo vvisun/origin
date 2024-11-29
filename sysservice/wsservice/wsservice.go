@@ -129,7 +129,7 @@ func (slf *WSClient) Run() {
 	for {
 		bytes, err := slf.wsConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client id %s is error:%+v", slf.id, err)
+			log.Debugf("read client id %s is error:%+v", slf.id, err)
 			break
 		}
 		data, err := slf.wsService.process.Unmarshal(slf.id, bytes)
