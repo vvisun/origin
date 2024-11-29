@@ -6,7 +6,7 @@ import (
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"reflect"
-	"runtime"
+
 	"strings"
 	"time"
 	"unicode"
@@ -220,10 +220,7 @@ func (handler *RpcHandler) RegisterRpc(rpcHandler IRpcHandler) error {
 func (handler *RpcHandler) HandlerRpcResponseCB(call *Call) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -242,10 +239,7 @@ func (handler *RpcHandler) HandlerRpcRequest(request *RpcRequest) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 			rpcErr := RpcError("call error : core dumps")
 			if request.requestHandle != nil {
 				request.requestHandle(nil, rpcErr)
@@ -439,7 +433,7 @@ func (handler *RpcHandler) goRpc(processor IRpcProcessor, bCast bool, nodeId str
 	err, pClientList := handler.funcRpcClient(nodeId, serviceMethod, false, pClientList)
 	if len(pClientList) == 0 {
 		if err != nil {
-			log.Error("call serviceMethod is failed", log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+			log.Error("call serviceMethod is failed", log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 		} else {
 			log.Error("cannot find serviceMethod", log.String("serviceMethod", serviceMethod))
 		}
@@ -468,7 +462,7 @@ func (handler *RpcHandler) callRpc(timeout time.Duration, nodeId string, service
 	pClientList := make([]*Client, 0, maxClusterNode)
 	err, pClientList := handler.funcRpcClient(nodeId, serviceMethod, false, pClientList)
 	if err != nil {
-		log.Error("Call serviceMethod is failed", log.ErrorAttr("error", err))
+		log.Error("Call serviceMethod is failed", log.ErrorField("error", err))
 		return err
 	} else if len(pClientList) <= 0 {
 		err = errors.New("Call serviceMethod is error:cannot find " + serviceMethod)
@@ -592,7 +586,7 @@ func (handler *RpcHandler) RawGoNode(rpcProcessorType RpcProcessorType, nodeId s
 	pClientList := make([]*Client, 0, 1)
 	err, pClientList := handler.funcRpcClient(nodeId, serviceName, false, pClientList)
 	if len(pClientList) == 0 || err != nil {
-		log.Error("call serviceMethod is failed", log.ErrorAttr("error", err))
+		log.Error("call serviceMethod is failed", log.ErrorField("error", err))
 		return err
 	}
 	if len(pClientList) > 1 {

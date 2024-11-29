@@ -250,7 +250,7 @@ func (cls *Cluster) Init(localNodeId string, setupServiceFun SetupServiceFun) er
 	//2.安装服务发现结点
 	err = cls.setupDiscovery(localNodeId, setupServiceFun)
 	if err != nil {
-		log.Error("setupDiscovery fail", log.ErrorAttr("err", err))
+		log.Error("setupDiscovery fail", log.ErrorField("err", err))
 		return err
 	}
 	service.RegRpcEventFun = cls.RegRpcEvent

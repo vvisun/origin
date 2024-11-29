@@ -203,7 +203,7 @@ func (kp *KCPServer) initSession(session *kcp.UDPSession) {
 func (kp *KCPServer) run(listener *kcp.Listener) bool {
 	conn, err := listener.Accept()
 	if err != nil {
-		log.Error("accept error", log.String("ListenAddr", kp.kcpCfg.ListenAddr), log.ErrorAttr("err", err))
+		log.Error("accept error", log.String("ListenAddr", kp.kcpCfg.ListenAddr), log.ErrorField("err", err))
 		return false
 	}
 
@@ -211,7 +211,7 @@ func (kp *KCPServer) run(listener *kcp.Listener) bool {
 	if len(kp.conns) >= kp.kcpCfg.MaxConnNum {
 		kp.mutexConns.Unlock()
 		conn.Close()
-		log.Warning("too many connections")
+		log.Warn("too many connections")
 		return true
 	}
 	kp.conns[conn] = struct{}{}

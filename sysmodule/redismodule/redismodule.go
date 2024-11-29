@@ -66,7 +66,7 @@ func (m *RedisModule) Init(redisCfg *ConfigRedis) {
 			}
 			c, err := redis.Dial("tcp", redisServer, opt...)
 			if err != nil {
-				log.Error("Connect redis fail reason:%v", err)
+				log.Error("Connect redis fail", log.ErrorField("err",err))
 				return nil, err
 			}
 
@@ -79,7 +79,7 @@ func (m *RedisModule) Init(redisCfg *ConfigRedis) {
 			}
 			_, err := c.Do("PING")
 			if err != nil {
-				log.Error("Do PING fail reason:%v", err)
+				log.Error("Do PING fail reason", log.ErrorField("err",err))
 				return err
 			}
 			return err
@@ -101,7 +101,7 @@ func (m *RedisModule) getConn() (redis.Conn, error) {
 	if conn.Err() != nil {
 		err := conn.Err()
 		if err != nil {
-			log.Error("get Conn have error,reason:%v", err)
+			log.Error("get Conn have error", log.ErrorField("err",err))
 		}
 		conn.Close()
 		return nil, err
@@ -118,7 +118,7 @@ func (m *RedisModule) TestPingRedis() error {
 
 	err = m.redisPool.TestOnBorrow(conn, time.Now())
 	if err != nil {
-		log.Error("TestOnBorrow fail,reason:%v", err)
+		log.Error("TestOnBorrow fail", log.ErrorField("err",err))
 		return err
 	}
 
@@ -171,7 +171,7 @@ func (m *RedisModule) setStringByExpire(key, value, expire interface{}) error {
 	}
 
 	if retErr != nil {
-		log.Error("setStringByExpire fail,reason:%v", retErr)
+		log.Error("setStringByExpire fail", log.ErrorField("err",retErr))
 		return retErr
 	}
 
@@ -254,7 +254,7 @@ func (m *RedisModule) setMuchStringByExpire(mapInfo map[interface{}]interface{},
 	}
 
 	if serr != nil {
-		log.Error("setMuchStringByExpire fail,reason:%v", serr)
+		log.Error("setMuchStringByExpire fail",log.ErrorField("err",serr))
 		conn.Do("DISCARD")
 		return serr
 	} else {
@@ -262,7 +262,7 @@ func (m *RedisModule) setMuchStringByExpire(mapInfo map[interface{}]interface{},
 	}
 
 	if err != nil {
-		log.Error("setMuchStringByExpire fail,reason:%v", err)
+		log.Error("setMuchStringByExpire fail", log.ErrorField("err",err))
 	}
 
 	return err
@@ -277,7 +277,7 @@ func (m *RedisModule) GetString(key interface{}) (string, error) {
 
 	ret, err := conn.Do("GET", key)
 	if err != nil {
-		log.Error("GetString fail,reason:%v", err)
+		log.Error("GetString fail", log.ErrorField("err",err))
 		return "", err
 	}
 
@@ -298,7 +298,7 @@ func (m *RedisModule) GetStringJSON(key string, st interface{}) error {
 
 	ret, err := conn.Do("GET", key)
 	if err != nil {
-		log.Error("GetStringJSON fail,reason:%v", err)
+		log.Error("GetStringJSON fail", log.ErrorField("err",err))
 		return err
 	}
 
@@ -315,7 +315,7 @@ func (m *RedisModule) GetStringJSON(key string, st interface{}) error {
 	}
 
 	if err = json.Unmarshal(str, st); err != nil {
-		log.Error("GetStringJSON fail json.Unmarshal is error:%s,%s,reason:%v", key, string(str), err)
+		log.Errorf("GetStringJSON fail json.Unmarshal is error:%s,%s,reason:%v", key, string(str), err)
 		return err
 	}
 
@@ -336,13 +336,13 @@ func (m *RedisModule) GetStringMap(keys []string) (retMap map[string]string, err
 	// 开始Send数据
 	err = conn.Send("MULTI")
 	if err != nil {
-		log.Error("GetMuchString fail %v", err)
+		log.Errorf("GetMuchString fail %v", err)
 		return nil, err
 	}
 	for _, val := range keys {
 		err = conn.Send("GET", val)
 		if err != nil {
-			log.Error("GetMuchString fail,reason:%v", err)
+			log.Errorf("GetMuchString fail,reason:%v", err)
 			conn.Do("DISCARD")
 			return nil, err
 		}
@@ -351,7 +351,7 @@ func (m *RedisModule) GetStringMap(keys []string) (retMap map[string]string, err
 	// 执行命令
 	ret, err := conn.Do("EXEC")
 	if err != nil {
-		log.Error("GetMuchString fail %v", err)
+		log.Errorf("GetMuchString fail %v", err)
 		return
 	}
 
@@ -383,7 +383,7 @@ func (m *RedisModule) ExistsKey(key interface{}) (bool, error) {
 
 	ret, err := conn.Do("EXISTS", key)
 	if err != nil {
-		log.Error("ExistsKey fail, reason:%v", err)
+		log.Errorf("ExistsKey fail, reason:%v", err)
 		return false, err
 	}
 	retValue, ok := ret.(int64)
@@ -404,7 +404,7 @@ func (m *RedisModule) DelString(key interface{}) error {
 
 	ret, err := conn.Do("DEL", key)
 	if err != nil {
-		log.Error("DelString fail, reason:%v", err)
+		log.Errorf("DelString fail, reason:%v", err)
 		return err
 	}
 
@@ -439,7 +439,7 @@ func (m *RedisModule) DelStringKeyList(keys []interface{}) (map[interface{}]bool
 	for _, val := range keys {
 		err = conn.Send("DEL", val)
 		if err != nil {
-			log.Error("DelMuchString fail,reason:%v", err)
+			log.Errorf("DelMuchString fail,reason:%v", err)
 			conn.Do("DISCARD")
 			return nil, err
 		}
@@ -448,7 +448,7 @@ func (m *RedisModule) DelStringKeyList(keys []interface{}) (map[interface{}]bool
 	ret, err := conn.Do("EXEC")
 
 	if err != nil {
-		log.Error("DelMuchString fail,reason:%v", err)
+		log.Errorf("DelMuchString fail,reason:%v", err)
 		return nil, err
 	}
 
@@ -484,7 +484,7 @@ func (m *RedisModule) SetHash(redisKey, hashKey, value interface{}) error {
 
 	_, retErr := conn.Do("HSET", redisKey, hashKey, value)
 	if retErr != nil {
-		log.Error("SetHash fail,reason:%v", retErr)
+		log.Errorf("SetHash fail,reason:%v", retErr)
 	}
 
 	return retErr
@@ -502,7 +502,7 @@ func (m *RedisModule) GetAllHashJSON(redisKey string) (map[string]string, error)
 
 	value, err := conn.Do("HGETALL", redisKey)
 	if err != nil {
-		log.Error("GetAllHashJSON fail,reason:%v", err)
+		log.Errorf("GetAllHashJSON fail,reason:%v", err)
 		return nil, err
 	}
 
@@ -522,7 +522,7 @@ func (m *RedisModule) GetHash(redisKey interface{}, fieldKey interface{}) (strin
 
 	value, err := conn.Do("HGET", redisKey, fieldKey)
 	if err != nil {
-		log.Error("GetHashValueByKey fail,reason:%v", err)
+		log.Errorf("GetHashValueByKey fail,reason:%v", err)
 		return "", err
 	}
 	if value == nil {
@@ -545,7 +545,7 @@ func (m *RedisModule) GetMuchHash(args ...interface{}) ([]string, error) {
 
 	value, err := conn.Do("HMGET", args...)
 	if err != nil {
-		log.Error("GetHashValueByKey fail,reason:%v", err)
+		log.Errorf("GetHashValueByKey fail,reason:%v", err)
 		return nil, err
 	}
 	if value == nil {
@@ -582,7 +582,7 @@ func (m *RedisModule) ScanMatchKeys(cursorValue int, redisKey string, count int)
 
 	value, err := conn.Do("SCAN", cursorValue, "match", redisKey, "count", count)
 	if err != nil {
-		log.Error("GetHashValueByKey fail,reason:%v", err)
+		log.Errorf("GetHashValueByKey fail,reason:%v", err)
 		return nextCursorValue, nil, err
 	}
 	if value == nil {
@@ -618,7 +618,7 @@ func (m *RedisModule) SetHashMapJSON(redisKey string, mapFieldValue map[interfac
 		if err == nil {
 			_, err = conn.Do("HSET", redisKey, symbol, temp)
 			if err != nil {
-				log.Error("SetMuchHashJSON fail,reason:%v", err)
+				log.Errorf("SetMuchHashJSON fail,reason:%v", err)
 				conn.Send("DISCARD")
 				return err
 			}
@@ -627,7 +627,7 @@ func (m *RedisModule) SetHashMapJSON(redisKey string, mapFieldValue map[interfac
 	// 执行命令
 	_, err = conn.Do("EXEC")
 	if err != nil {
-		log.Error("SetMuchHashJSON fail,reason:%v", err)
+		log.Errorf("SetMuchHashJSON fail,reason:%v", err)
 		conn.Send("DISCARD")
 	}
 	return err
@@ -642,7 +642,7 @@ func (m *RedisModule) DelHash(args ...interface{}) error {
 
 	_, retErr := conn.Do("HDEL", args...)
 	if retErr != nil {
-		log.Error("DelMuchHash fail,reason:%v", retErr)
+		log.Errorf("DelMuchHash fail,reason:%v", retErr)
 	}
 	return retErr
 }
@@ -678,7 +678,7 @@ func (m *RedisModule) setListPush(setType string, args ...interface{}) error {
 
 	_, retErr := conn.Do(setType, args...)
 	if retErr != nil {
-		log.Error("setList fail,reason:%v", retErr)
+		log.Errorf("setList fail,reason:%v", retErr)
 	}
 	return retErr
 }
@@ -705,7 +705,7 @@ func (m *RedisModule) LRangeList(key string, start, end int) ([]string, error) {
 
 	reply, err := conn.Do("lrange", key, start, end)
 	if err != nil {
-		log.Error("SetListJSONRpush fail,reason:%v", err)
+		log.Errorf("SetListJSONRpush fail,reason:%v", err)
 		return nil, err
 	}
 
@@ -722,7 +722,7 @@ func (m *RedisModule) GetListLen(key string) (int, error) {
 
 	reply, err := conn.Do("LLEN", key)
 	if err != nil {
-		log.Error("GetListLen fail,reason:%v", err)
+		log.Errorf("GetListLen fail,reason:%v", err)
 		return -1, err
 	}
 	return redis.Int(reply, err)
@@ -748,7 +748,7 @@ func (m *RedisModule) LTrimList(key string, start, end int) error {
 
 	_, err = conn.Do("LTRIM", key, start, end)
 	if err != nil {
-		log.Error("LtrimListValue fail,reason:%v", err)
+		log.Errorf("LtrimListValue fail,reason:%v", err)
 		return err
 	}
 	return nil
@@ -849,7 +849,7 @@ func (m *RedisModule) ZADDInsertJson(key string, score float64, value interface{
 	}
 	_, err = conn.Do("ZADD", key, score, JsonValue)
 	if err != nil {
-		log.Error("ZADDInsertJson fail,reason:%v", err)
+		log.Errorf("ZADDInsertJson fail,reason:%v", err)
 		return err
 	}
 	return nil
@@ -865,7 +865,7 @@ func (m *RedisModule) ZADDInsert(key string, score float64, Data interface{}) er
 
 	_, err = conn.Do("ZADD", key, score, Data)
 	if err != nil {
-		log.Error("ZADDInsert fail,reason:%v", err)
+		log.Errorf("ZADDInsert fail,reason:%v", err)
 		return err
 	}
 	return nil
@@ -1088,7 +1088,7 @@ func (m *RedisModule) HincrbyHashInt(redisKey, hashKey string, value int) error 
 
 	_, retErr := conn.Do("HINCRBY", redisKey, hashKey, value)
 	if retErr != nil {
-		log.Error("HincrbyHashInt fail,reason:%v", retErr)
+		log.Errorf("HincrbyHashInt fail,reason:%v", retErr)
 	}
 
 	return retErr
@@ -1103,7 +1103,7 @@ func (m *RedisModule) EXPlREInsert(key string, TTl int) error {
 
 	_, err = conn.Do("expire", key, TTl)
 	if err != nil {
-		log.Error("expire fail,reason:%v", err)
+		log.Errorf("expire fail,reason:%v", err)
 		return err
 	}
 	return nil
@@ -1129,7 +1129,7 @@ func (m *RedisModule) Keys(key string) ([]string, error) {
 
 	ret, err := conn.Do("KEYS", key)
 	if err != nil {
-		log.Error("KEYS fail, reason:%v", err)
+		log.Errorf("KEYS fail, reason:%v", err)
 		return nil, err
 	}
 	retList, ok := ret.([]interface{})

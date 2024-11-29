@@ -9,7 +9,6 @@ import (
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/xtaci/kcp-go/v5"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"runtime"
 	"sync"
 )
 
@@ -167,10 +166,7 @@ func (km *KcpModule) NewAgent(conn network.Conn) network.Agent {
 func (c *Client) Run() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -179,7 +175,7 @@ func (c *Client) Run() {
 		c.kcpConn.SetReadDeadline(*c.kcpModule.kcpCfg.ReadDeadlineMill)
 		msgBuff, err := c.kcpConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client failed", log.ErrorAttr("error", err), log.String("clientId", c.id))
+			log.Debug("read client failed", log.ErrorField("error", err), log.String("clientId", c.id))
 			break
 		}
 

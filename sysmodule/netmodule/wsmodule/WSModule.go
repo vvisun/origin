@@ -120,7 +120,7 @@ func (wc *WSClient) Run() {
 	for {
 		bytes, err := wc.wsConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client is error", log.String("clientId", wc.id), log.ErrorAttr("err", err))
+			log.Debug("read client is error", log.String("clientId", wc.id), log.ErrorField("err", err))
 			break
 		}
 		data, err := wc.wsModule.process.Unmarshal(wc.id, bytes)

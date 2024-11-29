@@ -11,11 +11,13 @@ import (
 	"github.com/duanhf2012/origin/v2/util/buildtime"
 	"github.com/duanhf2012/origin/v2/util/sysprocess"
 	"github.com/duanhf2012/origin/v2/util/timer"
+	"go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -54,10 +56,9 @@ func init() {
 	console.RegisterCommandString("retire", "", "<-retire nodeid=nodeid> retire originserver process.", retireNode)
 	console.RegisterCommandString("config", "", "<-config path> Configuration file path.", setConfigPath)
 	console.RegisterCommandString("console", "", "<-console true|false> Turn on or off screen log output.", openConsole)
-	console.RegisterCommandString("loglevel", "debug", "<-loglevel debug|release|warning|error|fatal> Set loglevel.", setLevel)
+	console.RegisterCommandString("loglevel", "debug", "<-loglevel debug|info|warn|error|stackerror|fatal> Set loglevel.", setLevel)
 	console.RegisterCommandString("logpath", "", "<-logpath path> Set log file path.", setLogPath)
 	console.RegisterCommandInt("logsize", 0, "<-logsize size> Set log size(MB).", setLogSize)
-	console.RegisterCommandInt("logchannelcap", -1, "<-logchannelcap num> Set log channel cap.", setLogChannelCapNum)
 	console.RegisterCommandString("pprof", "", "<-pprof ip:port> Open performance analysis.", setPprof)
 }
 
@@ -156,12 +157,14 @@ func initNode(id string) {
 	nodeId = id
 	err := cluster.GetCluster().Init(GetNodeId(), Setup)
 	if err != nil {
-		log.Error("Init cluster fail", log.ErrorAttr("error", err))
+		log.Error("Init cluster fail", log.ErrorField("error", err))
 		os.Exit(1)
 	}
 
 	err = initLog()
 	if err != nil {
+		log.Error("Init log fail", log.ErrorField("error", err))
+		os.Exit(1)
 		return
 	}
 
@@ -211,22 +214,26 @@ func initNode(id string) {
 	}
 
 	//3.service初始化
+	log.Info("Start running server.")
 	service.Init()
 }
 
 func initLog() error {
-	if log.LogPath == "" {
-		setLogPath("./log")
+	logger := log.GetLogger()
+	if logger.LogPath == "" {
+		err := setLogPath("./log")
+		if err != nil {
+			return err
+		}
 	}
 
 	localNodeInfo := cluster.GetCluster().GetLocalNodeInfo()
-	filePre := fmt.Sprintf("%s_", localNodeInfo.NodeId)
-	logger, err := log.NewTextLogger(log.LogLevel, log.LogPath, filePre, true, log.LogChannelCap)
-	if err != nil {
-		fmt.Printf("cannot create log file!\n")
-		return err
-	}
-	log.SetLogger(logger)
+	fileName := fmt.Sprintf("%s.log", localNodeInfo.NodeId)
+	logger.FileName = fileName
+	filepath.Join()
+	logger.LogConfig.Filename = filepath.Join(logger.LogPath, logger.FileName)
+
+	logger.Init()
 	return nil
 }
 
@@ -323,7 +330,7 @@ func startNode(args interface{}) error {
 		myName, mErr := sysprocess.GetMyProcessName()
 		//当前进程名获取失败，不应该发生
 		if mErr != nil {
-			log.Info("get my process's name is error", log.ErrorAttr("err", mErr))
+			log.Info("get my process's name is error", log.ErrorField("err", mErr))
 			os.Exit(-1)
 		}
 
@@ -336,11 +343,11 @@ func startNode(args interface{}) error {
 	}
 
 	//2.记录进程id号
-	log.Info("Start running server.")
 	writeProcessPid(strNodeId)
 	timer.StartTimer(10*time.Millisecond, 1000000)
 
 	//3.初始化node
+	defer log.GetLogger().Logger.Sync()
 	initNode(strNodeId)
 
 	//4.运行service
@@ -378,7 +385,7 @@ func startNode(args interface{}) error {
 	cluster.GetCluster().Stop()
 
 	log.Info("Server is stop.")
-	log.Close()
+
 	return nil
 }
 
@@ -400,8 +407,8 @@ func SetupTemplateFunc(fs ...func() service.IService) {
 	}
 }
 
-func SetupTemplate[T any,P templateServicePoint[T]]() {
-	SetupTemplateFunc(func() service.IService{
+func SetupTemplate[T any, P templateServicePoint[T]]() {
+	SetupTemplateFunc(func() service.IService {
 		var t T
 		return P(&t)
 	})
@@ -430,9 +437,11 @@ func openConsole(args interface{}) error {
 	}
 	strOpen := strings.ToLower(strings.TrimSpace(args.(string)))
 	if strOpen == "false" {
-		log.OpenConsole = false
+		bOpenConsole := false
+		log.GetLogger().OpenConsole = &bOpenConsole
 	} else if strOpen == "true" {
-		log.OpenConsole = true
+		bOpenConsole := true
+		log.GetLogger().OpenConsole = &bOpenConsole
 	} else {
 		return errors.New("parameter console error")
 	}
@@ -446,20 +455,18 @@ func setLevel(args interface{}) error {
 
 	strlogLevel := strings.TrimSpace(args.(string))
 	switch strlogLevel {
-	case "trace":
-		log.LogLevel = log.LevelTrace
 	case "debug":
-		log.LogLevel = log.LevelDebug
+		log.GetLogger().LogLevel = zapcore.DebugLevel
 	case "info":
-		log.LogLevel = log.LevelInfo
-	case "warning":
-		log.LogLevel = log.LevelWarning
+		log.GetLogger().LogLevel = zapcore.InfoLevel
+	case "warn":
+		log.GetLogger().LogLevel = zapcore.WarnLevel
 	case "error":
-		log.LogLevel = log.LevelError
-	case "stack":
-		log.LogLevel = log.LevelStack
+		log.GetLogger().LogLevel = zapcore.ErrorLevel
+	case "stackerror":
+		log.GetLogger().LogLevel = zapcore.ErrorLevel
 	case "fatal":
-		log.LogLevel = log.LevelFatal
+		log.GetLogger().LogLevel = zapcore.FatalLevel
 	default:
 		return errors.New("unknown level: " + strlogLevel)
 	}
@@ -470,52 +477,33 @@ func setLogPath(args interface{}) error {
 	if args == "" {
 		return nil
 	}
-
-	log.LogPath = strings.TrimSpace(args.(string))
-	dir, err := os.Stat(log.LogPath) //这个文件夹不存在
+	logPath := strings.TrimSpace(args.(string))
+	dir, err := os.Stat(logPath)
 	if err == nil && dir.IsDir() == false {
-		return errors.New("Not found dir " + log.LogPath)
+		return errors.New("Not found dir " + logPath)
 	}
 
 	if err != nil {
-		err = os.Mkdir(log.LogPath, os.ModePerm)
+		err = os.Mkdir(log.GetLogger().LogPath, os.ModePerm)
 		if err != nil {
-			return errors.New("Cannot create dir " + log.LogPath)
+			return errors.New("Cannot create dir " + log.GetLogger().LogPath)
 		}
 	}
 
+	log.GetLogger().LogPath = logPath
 	return nil
 }
 
 func setLogSize(args interface{}) error {
-	if args == "" {
-		return nil
-	}
-
 	logSize, ok := args.(int)
 	if ok == false {
 		return errors.New("param logsize is error")
 	}
-
-	log.LogSize = int64(logSize) * 1024 * 1024
-
-	return nil
-}
-
-func setLogChannelCapNum(args interface{}) error {
-	if args == "" {
+	if logSize == 0 {
 		return nil
 	}
 
-	logChannelCap, ok := args.(int)
-	if ok == false {
-		return errors.New("param logsize is error")
-	}
+	log.GetLogger().LogConfig.MaxSize = logSize
 
-	if logChannelCap == -1 {
-		return nil
-	}
-
-	log.LogChannelCap = logChannelCap
 	return nil
 }

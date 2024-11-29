@@ -7,7 +7,6 @@ import (
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/gin-gonic/gin"
 	"io"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -69,28 +68,28 @@ func (gm *GinModule) eventHandler(ev event.IEvent) {
 
 func (gm *GinModule) Start() {
 	gm.srv.Addr = gm.listenAddr
-	log.Info("http start listen", slog.Any("addr", gm.listenAddr))
+	log.Info("http start listen", log.Any("addr", gm.listenAddr))
 	go func() {
 		err := gm.srv.ListenAndServe()
 		if err != nil {
-			log.Error("ListenAndServe error", slog.Any("error", err.Error()))
+			log.Error("ListenAndServe error", log.Any("error", err.Error()))
 		}
 	}()
 }
 
 func (gm *GinModule) StartTLS(certFile, keyFile string) {
-	log.Info("http start listen", slog.Any("addr", gm.listenAddr))
+	log.Info("http start listen", log.Any("addr", gm.listenAddr))
 	go func() {
 		err := gm.srv.ListenAndServeTLS(certFile, keyFile)
 		if err != nil {
-			log.Fatal("ListenAndServeTLS error", slog.Any("error", err.Error()))
+			log.Fatal("ListenAndServeTLS error", log.Any("error", err.Error()))
 		}
 	}()
 }
 
 func (gm *GinModule) Stop(ctx context.Context) {
 	if err := gm.srv.Shutdown(ctx); err != nil {
-		log.Error("Server Shutdown", slog.Any("error", err))
+		log.Error("Server Shutdown", log.Any("error", err))
 	}
 }
 
@@ -210,7 +209,7 @@ func (gm *GinModule) handleMethod(httpMethod, relativePath string, handlers ...S
 
 		select {
 		case <-ctx.Done():
-			log.Error("GinModule process timeout", slog.Any("path", c.Request.URL.Path))
+			log.Error("GinModule process timeout", log.Any("path", c.Request.URL.Path))
 			c.AbortWithStatus(http.StatusRequestTimeout)
 		case <-chanWait:
 		}

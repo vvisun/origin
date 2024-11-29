@@ -68,7 +68,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(handler.conns) >= handler.maxConnNum {
 		handler.mutexConns.Unlock()
 		conn.Close()
-		log.Warning("too many connections")
+		log.Warn("too many connections")
 		return
 	}
 	handler.conns[conn] = struct{}{}

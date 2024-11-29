@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"fmt"
-	"runtime"
+
 
 	"context"
 	"github.com/duanhf2012/origin/v2/log"
@@ -192,10 +192,7 @@ breakFor:
 func (d *dispatch) DoCallback(cb func(err error)) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 

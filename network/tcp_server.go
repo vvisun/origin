@@ -146,7 +146,7 @@ func (server *TCPServer) run() {
 		if len(server.conns) >= server.MaxConnNum {
 			server.mutexConns.Unlock()
 			conn.Close()
-			log.Warning("too many connections")
+			log.Warn("too many connections")
 			continue
 		}
 

@@ -3,7 +3,6 @@ package event
 import (
 	"fmt"
 	"github.com/duanhf2012/origin/v2/log"
-	"runtime"
 	"sync"
 )
 
@@ -215,10 +214,7 @@ func (handler *EventHandler) Destroy() {
 func (processor *EventProcessor) EventHandler(ev IEvent) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 

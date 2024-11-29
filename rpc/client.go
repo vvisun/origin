@@ -104,7 +104,7 @@ func (client *Client) processRpcResponse(responseData []byte) error {
 	//rc.conn.ReleaseReadMsg(bytes)
 	if err != nil {
 		processor.ReleaseRpcResponse(response.RpcResponseData)
-		log.Error("rpcClient Unmarshal head error", log.ErrorAttr("error", err))
+		log.Error("rpcClient Unmarshal head error", log.ErrorField("error", err))
 		return nil
 	}
 
@@ -116,7 +116,7 @@ func (client *Client) processRpcResponse(responseData []byte) error {
 		if len(response.RpcResponseData.GetReply()) > 0 {
 			err = processor.Unmarshal(response.RpcResponseData.GetReply(), v.Reply)
 			if err != nil {
-				log.Error("rpcClient Unmarshal body failed", log.ErrorAttr("error", err))
+				log.Error("rpcClient Unmarshal body failed", log.ErrorField("error", err))
 				v.Err = err
 			}
 		}
@@ -203,7 +203,7 @@ func (client *Client) rawGo(nodeId string, w IWriter, timeout time.Duration, rpc
 	}
 	if err != nil {
 		client.RemovePending(call.Seq)
-		log.Error("WriteMsg is fail", log.ErrorAttr("error", err))
+		log.Error("WriteMsg is fail", log.ErrorField("error", err))
 		call.Seq = 0
 		call.DoError(err)
 	}
