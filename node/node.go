@@ -3,14 +3,6 @@ package node
 import (
 	"errors"
 	"fmt"
-	"github.com/duanhf2012/origin/v2/cluster"
-	"github.com/duanhf2012/origin/v2/console"
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/duanhf2012/origin/v2/profiler"
-	"github.com/duanhf2012/origin/v2/service"
-	"github.com/duanhf2012/origin/v2/util/buildtime"
-	"github.com/duanhf2012/origin/v2/util/sysprocess"
-	"github.com/duanhf2012/origin/v2/util/timer"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -20,6 +12,15 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/cluster"
+	"github.com/duanhf2012/origin/v2/console"
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/profiler"
+	"github.com/duanhf2012/origin/v2/service"
+	"github.com/duanhf2012/origin/v2/util/buildtime"
+	"github.com/duanhf2012/origin/v2/util/sysprocess"
+	"github.com/duanhf2012/origin/v2/util/timer"
 )
 
 var sig chan os.Signal
@@ -301,14 +302,7 @@ func startNode(args interface{}) error {
 		return nil
 	}
 
-	sParam := strings.Split(param, "=")
-	if len(sParam) != 2 {
-		return fmt.Errorf("invalid option %s", param)
-	}
-	if sParam[0] != "nodeid" {
-		return fmt.Errorf("invalid option %s", param)
-	}
-	strNodeId := strings.TrimSpace(sParam[1])
+	strNodeId := strings.TrimSpace(param)
 	if strNodeId == "" {
 		return fmt.Errorf("invalid option %s", param)
 	}
@@ -336,7 +330,7 @@ func startNode(args interface{}) error {
 	}
 
 	//2.记录进程id号
-	log.Info("Start running server.")
+	log.Info("Start running server.", strNodeId)
 	writeProcessPid(strNodeId)
 	timer.StartTimer(10*time.Millisecond, 1000000)
 
@@ -400,8 +394,8 @@ func SetupTemplateFunc(fs ...func() service.IService) {
 	}
 }
 
-func SetupTemplate[T any,P templateServicePoint[T]]() {
-	SetupTemplateFunc(func() service.IService{
+func SetupTemplate[T any, P templateServicePoint[T]]() {
+	SetupTemplateFunc(func() service.IService {
 		var t T
 		return P(&t)
 	})
