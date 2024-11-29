@@ -88,15 +88,16 @@ func yamlToJson(data []byte, v interface{}) ([]byte, error) {
 }
 
 func unmarshalConfig(data []byte, v interface{}) error {
-	if !json.Valid(data) {
+	envData := []byte(os.ExpandEnv(string(data)))
+	if !json.Valid(envData) {
 		var err error
-		data, err = yamlToJson(data, v)
+		envData, err = yamlToJson(envData, v)
 		if err != nil {
 			return err
 		}
 	}
 
-	return json.Unmarshal(data, v)
+	return json.Unmarshal(envData, v)
 }
 
 func (d *DiscoveryInfo) getDiscoveryType() DiscoveryType {
