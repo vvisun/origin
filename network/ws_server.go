@@ -44,7 +44,7 @@ func (handler *WSHandler) SetMessageType(messageType int) {
 
 func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	conn, err := handler.upgrader.Upgrade(w, r, nil)
@@ -104,7 +104,7 @@ func (server *WSServer) Start() error {
 	}
 
 	if server.MaxConnNum <= 0 {
-		server.MaxConnNum = 100
+		server.MaxConnNum = 10000
 		log.Info("invalid MaxConnNum", log.Int("reset", server.MaxConnNum))
 	}
 	if server.PendingWriteNum <= 0 {

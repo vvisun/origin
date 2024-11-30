@@ -302,7 +302,14 @@ func startNode(args interface{}) error {
 		return nil
 	}
 
-	strNodeId := strings.TrimSpace(param)
+	sParam := strings.Split(param, "=")
+	if len(sParam) != 2 {
+		return fmt.Errorf("invalid option %s", param)
+	}
+	if sParam[0] != "nodeid" {
+		return fmt.Errorf("invalid option %s", param)
+	}
+	strNodeId := strings.TrimSpace(sParam[1])
 	if strNodeId == "" {
 		return fmt.Errorf("invalid option %s", param)
 	}
