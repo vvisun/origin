@@ -1,11 +1,12 @@
 package network
 
 import (
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/xtaci/kcp-go/v5"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/xtaci/kcp-go/v5"
 )
 
 type KCPClient struct {
@@ -106,7 +107,7 @@ func (client *KCPClient) dial() net.Conn {
 			return conn
 		}
 
-		log.Warning("connect error ", log.String("error", err.Error()), log.String("Addr", client.Addr))
+		log.Warn("connect error ", log.String("error", err.Error()), log.String("Addr", client.Addr))
 		time.Sleep(client.ConnectInterval)
 		continue
 	}

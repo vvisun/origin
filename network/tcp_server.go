@@ -3,11 +3,12 @@ package network
 import (
 	"errors"
 	"fmt"
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/duanhf2012/origin/v2/util/bytespool"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/util/bytespool"
 )
 
 const (
@@ -146,7 +147,7 @@ func (server *TCPServer) run() {
 		if len(server.conns) >= server.MaxConnNum {
 			server.mutexConns.Unlock()
 			conn.Close()
-			log.Warning("too many connections")
+			log.Warn("too many connections")
 			continue
 		}
 

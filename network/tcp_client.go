@@ -1,10 +1,11 @@
 package network
 
 import (
-	"github.com/duanhf2012/origin/v2/log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
 )
 
 type TCPClient struct {
@@ -102,7 +103,7 @@ func (client *TCPClient) dial() net.Conn {
 			return conn
 		}
 
-		log.Warning("connect error ", log.String("error", err.Error()), log.String("Addr", client.Addr))
+		log.Warn("connect error ", log.String("error", err.Error()), log.String("Addr", client.Addr))
 		time.Sleep(client.ConnectInterval)
 		continue
 	}

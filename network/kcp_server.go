@@ -1,11 +1,12 @@
 package network
 
 import (
+	"sync"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/xtaci/kcp-go/v5"
-	"sync"
-	"time"
 )
 
 type KCPServer struct {
@@ -211,7 +212,7 @@ func (kp *KCPServer) run(listener *kcp.Listener) bool {
 	if len(kp.conns) >= kp.kcpCfg.MaxConnNum {
 		kp.mutexConns.Unlock()
 		conn.Close()
-		log.Warning("too many connections")
+		log.Warn("too many connections")
 		return true
 	}
 	kp.conns[conn] = struct{}{}

@@ -32,6 +32,7 @@ type IModule interface {
 	GetModuleName() string
 	GetEventProcessor() event.IEventProcessor
 	NotifyEvent(ev event.IEvent)
+	GetEventHandler() event.IEventHandler
 }
 
 type IModuleTimer interface {
@@ -281,7 +282,7 @@ func (m *Module) SafeNewTicker(tickerId *uint64, d time.Duration, AdditionData i
 
 func (m *Module) CancelTimerId(timerId *uint64) bool {
 	if timerId == nil || *timerId == 0 {
-		log.Warning("timerId is invalid")
+		log.Warn("timerId is invalid")
 		return false
 	}
 
