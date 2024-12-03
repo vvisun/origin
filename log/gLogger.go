@@ -39,16 +39,36 @@ func Error(msg string, args ...any) {
 	gLogger.Error(msg, args...)
 }
 
+func Fatal(msg string, args ...any) {
+	gLogger.Fatal(msg, args...)
+}
+
+func Debugf(msg string, args ...any) {
+	gLogger.Debug(msg, args...)
+}
+
+func Infof(msg string, args ...any) {
+	gLogger.Info(msg, args...)
+}
+
+func Warnf(msg string, args ...any) {
+	gLogger.Warn(msg, args...)
+}
+
+func Errorf(msg string, args ...any) {
+	gLogger.Error(msg, args...)
+}
+
+func Fatalf(msg string, args ...any) {
+	gLogger.Fatal(msg, args...)
+}
+
 func Stack(msg string, args ...any) {
 	gLogger.Stack(msg, args...)
 }
 
 func Dump(dump string, args ...any) {
 	gLogger.Dump(dump, args...)
-}
-
-func Fatal(msg string, args ...any) {
-	gLogger.Fatal(msg, args...)
 }
 
 func Close() {
