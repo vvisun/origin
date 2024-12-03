@@ -59,7 +59,7 @@ func (iw *IoWriter) writeFile(p []byte) (n int, err error) {
 	iw.switchFile()
 
 	if iw.outFile != nil {
-		n, err = iw.outFile.Write(p)
+		n, _ = iw.outFile.Write(p)
 		if n > 0 {
 			atomic.AddInt64(&iw.writeBytes, int64(n))
 		}

@@ -9,11 +9,25 @@ import (
 	"time"
 )
 
-var OpenConsole bool
-var LogSize int64
-var LogChannelCap int
-var LogPath string
-var LogLevel = LevelTrace
+// levels
+const (
+	LevelTrace   = slog.Level(-8)
+	LevelDebug   = slog.LevelDebug
+	LevelInfo    = slog.LevelInfo
+	LevelWarning = slog.LevelWarn
+	LevelError   = slog.LevelError
+	LevelStack   = slog.Level(12)
+	LevelDump    = slog.Level(16)
+	LevelFatal   = slog.Level(20)
+)
+
+var (
+	LogLevel           = LevelTrace
+	OpenConsole   bool = true
+	LogSize       int64
+	LogChannelCap int
+	LogPath       string
+)
 
 type Logger struct {
 	SLogger  *slog.Logger
