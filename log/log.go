@@ -24,10 +24,41 @@ const (
 var (
 	LogLevel           = LevelTrace
 	OpenConsole   bool = true
+	WriteToFile   bool = false
 	LogSize       int64
 	LogChannelCap int
 	LogPath       string
 )
+
+func NewTextLogger(level slog.Level, pathName string, filePrefix string, addSource bool, logChannelCap int) (ILogger, error) {
+	var logger Logger
+	logger.ioWriter.filePath = pathName
+	logger.ioWriter.filePrefix = filePrefix
+
+	logger.SLogger = slog.New(NewOriginTextHandler(level, &logger.ioWriter, addSource, defaultReplaceAttr))
+	logger.setLogChannel(logChannelCap)
+	err := logger.ioWriter.switchFile()
+	if err != nil {
+		return nil, err
+	}
+
+	return &logger, nil
+}
+
+func NewJsonLogger(level slog.Level, pathName string, filePrefix string, addSource bool, logChannelCap int) (ILogger, error) {
+	var logger Logger
+	logger.ioWriter.filePath = pathName
+	logger.ioWriter.filePrefix = filePrefix
+
+	logger.SLogger = slog.New(NewOriginJsonHandler(level, &logger.ioWriter, true, defaultReplaceAttr))
+	logger.setLogChannel(logChannelCap)
+	err := logger.ioWriter.switchFile()
+	if err != nil {
+		return nil, err
+	}
+
+	return &logger, nil
+}
 
 type Logger struct {
 	SLogger  *slog.Logger
@@ -164,38 +195,6 @@ func (logger *Logger) SWarning(a ...interface{}) {
 
 func (logger *Logger) SError(a ...interface{}) {
 	logger.DoSPrintf(LevelError, a)
-}
-
-//-----------------------------------------------------------
-
-func NewTextLogger(level slog.Level, pathName string, filePrefix string, addSource bool, logChannelCap int) (ILogger, error) {
-	var logger Logger
-	logger.ioWriter.filePath = pathName
-	logger.ioWriter.filePrefix = filePrefix
-
-	logger.SLogger = slog.New(NewOriginTextHandler(level, &logger.ioWriter, addSource, defaultReplaceAttr))
-	logger.setLogChannel(logChannelCap)
-	err := logger.ioWriter.switchFile()
-	if err != nil {
-		return nil, err
-	}
-
-	return &logger, nil
-}
-
-func NewJsonLogger(level slog.Level, pathName string, filePrefix string, addSource bool, logChannelCap int) (ILogger, error) {
-	var logger Logger
-	logger.ioWriter.filePath = pathName
-	logger.ioWriter.filePrefix = filePrefix
-
-	logger.SLogger = slog.New(NewOriginJsonHandler(level, &logger.ioWriter, true, defaultReplaceAttr))
-	logger.setLogChannel(logChannelCap)
-	err := logger.ioWriter.switchFile()
-	if err != nil {
-		return nil, err
-	}
-
-	return &logger, nil
 }
 
 //-----------------------------------------------------------
