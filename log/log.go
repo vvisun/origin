@@ -164,30 +164,30 @@ func Fatal(msg string, fields ...zap.Field) {
 	gLogger.stack = false
 }
 
-func Debugf(msg string, args ...any) {
-	gLogger.sugaredLogger.Debugf(msg, args...)
+func Debugf(template string, args ...any) {
+	gLogger.sugaredLogger.Debugf(template, args...)
 }
 
-func Infof(msg string, args ...any) {
-	gLogger.sugaredLogger.Infof(msg, args...)
+func Infof(template string, args ...any) {
+	gLogger.sugaredLogger.Infof(template, args...)
 }
 
-func Warnf(msg string, args ...any) {
-	gLogger.sugaredLogger.Warnf(msg, args...)
+func Warnf(template string, args ...any) {
+	gLogger.sugaredLogger.Warnf(template, args...)
 }
 
-func Errorf(msg string, args ...any) {
-	gLogger.sugaredLogger.Errorf(msg, args...)
+func Errorf(template string, args ...any) {
+	gLogger.sugaredLogger.Errorf(template, args...)
 }
 
-func StackErrorf(msg string, args ...any) {
+func StackErrorf(template string, args ...any) {
 	gLogger.stack = true
-	gLogger.sugaredLogger.Errorf(msg, args...)
+	gLogger.sugaredLogger.Errorf(template, args...)
 	gLogger.stack = false
 }
 
-func Fatalf(msg string, args ...any) {
-	gLogger.sugaredLogger.Fatalf(msg, args...)
+func Fatalf(template string, args ...any) {
+	gLogger.sugaredLogger.Fatalf(template, args...)
 }
 
 func (logger *Logger) SDebug(args ...interface{}) {

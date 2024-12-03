@@ -526,8 +526,7 @@ func (handler *RpcHandler) asyncCallRpc(timeout time.Duration, nodeId string, se
 	}
 
 	//2.rpcClient调用
-	//如果调用本结点服务
-	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, false)
+	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, )
 }
 
 func (handler *RpcHandler) GetName() string {

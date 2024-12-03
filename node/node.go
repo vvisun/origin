@@ -330,13 +330,13 @@ func startNode(args interface{}) error {
 		myName, mErr := sysprocess.GetMyProcessName()
 		//当前进程名获取失败，不应该发生
 		if mErr != nil {
-			log.Info("get my process's name is error", log.ErrorField("err", mErr))
+			log.Error("get my process's name is error", log.ErrorField("err", mErr))
 			os.Exit(-1)
 		}
 
 		//进程id存在，而且进程名也相同，被认为是当前进程重复运行
 		if cErr == nil && name == myName {
-			log.Info("repeat runs are not allowed", log.String("nodeId", strNodeId), log.Int("processId", processId))
+			log.Error("repeat runs are not allowed", log.String("nodeId", strNodeId), log.Int("processId", processId))
 			os.Exit(-1)
 		}
 		break
@@ -354,10 +354,13 @@ func startNode(args interface{}) error {
 	service.Start()
 
 	//5.运行集群
-	cluster.GetCluster().Start()
+	err := cluster.GetCluster().Start()
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(-1)
+	}
 
 	//6.监听程序退出信号&性能报告
-
 	var pProfilerTicker *time.Ticker = &time.Ticker{}
 	if profilerInterval > 0 {
 		pProfilerTicker = time.NewTicker(profilerInterval)
