@@ -18,6 +18,7 @@ type Logger struct {
 	OpenConsole   *bool
 	LogPath       string
 	FileName      string
+	Skip          int
 	LogLevel      zapcore.Level
 	Encoder       zapcore.Encoder
 	LogConfig     *lumberjack.Logger
@@ -37,6 +38,10 @@ func GetLogger() *Logger {
 
 func (logger *Logger) SetEncoder(encoder zapcore.Encoder) {
 	logger.Encoder = encoder
+}
+
+func (logger *Logger) SetSkip(skip int) {
+	logger.Skip = skip
 }
 
 func GetJsonEncoder() zapcore.Encoder {
@@ -104,7 +109,7 @@ func (logger *Logger) Init() {
 	}
 
 	core := zapcore.NewTee(coreList...)
-	logger.Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(logger), zap.AddCallerSkip(1))
+	logger.Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(logger), zap.AddCallerSkip(1+logger.Skip))
 	logger.sugaredLogger = logger.Logger.Sugar()
 }
 
