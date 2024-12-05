@@ -90,7 +90,7 @@ func (lc *LClient) RawGo(nodeId string, timeout time.Duration, rpcHandler IRpcHa
 	return pLocalRpcServer.selfNodeRpcHandlerGo(timeout, processor, lc.selfClient, true, serviceName, rpcMethodId, serviceName, nil, nil, rawArgs)
 }
 
-func (lc *LClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, reply interface{}, cancelable bool) (CancelRpc, error) {
+func (lc *LClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, reply interface{}) (CancelRpc, error) {
 	pLocalRpcServer := rpcHandler.GetRpcServer()()
 
 	//判断是否是同一服务
@@ -109,7 +109,7 @@ func (lc *LClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IR
 	}
 
 	//其他的rpcHandler的处理器
-	cancelRpc, err := pLocalRpcServer.selfNodeRpcHandlerAsyncGo(timeout, lc.selfClient, rpcHandler, false, serviceName, serviceMethod, args, reply, callback, cancelable)
+	cancelRpc, err := pLocalRpcServer.selfNodeRpcHandlerAsyncGo(timeout, lc.selfClient, rpcHandler, false, serviceName, serviceMethod, args, reply, callback)
 	if err != nil {
 		callback.Call([]reflect.Value{reflect.ValueOf(reply), reflect.ValueOf(err)})
 	}
@@ -121,9 +121,6 @@ func NewLClient(localNodeId string, callSet *CallSet) *Client {
 	client := &Client{}
 	client.clientId = atomic.AddUint32(&clientSeq, 1)
 	client.targetNodeId = localNodeId
-	//client.maxCheckCallRpcCount = DefaultMaxCheckCallRpcCount
-	//client.callRpcTimeout = DefaultRpcTimeout
-
 	lClient := &LClient{}
 	lClient.selfClient = client
 	client.IRealClient = lClient

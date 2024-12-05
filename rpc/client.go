@@ -32,7 +32,7 @@ type IRealClient interface {
 	SetConn(conn *network.NetConn)
 	Close(waitDone bool)
 
-	AsyncCall(NodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}, cancelable bool) (CancelRpc, error)
+	AsyncCall(NodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}) (CancelRpc, error)
 	Go(NodeId string, timeout time.Duration, rpcHandler IRpcHandler, noReply bool, serviceMethod string, args interface{}, reply interface{}) *Call
 	RawGo(NodeId string, timeout time.Duration, rpcHandler IRpcHandler, processor IRpcProcessor, noReply bool, rpcMethodId uint32, serviceMethod string, rawArgs []byte, reply interface{}) *Call
 	IsConnected() bool
@@ -211,7 +211,7 @@ func (client *Client) rawGo(nodeId string, w IWriter, timeout time.Duration, rpc
 	return call
 }
 
-func (client *Client) asyncCall(nodeId string, w IWriter, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}, cancelable bool) (CancelRpc, error) {
+func (client *Client) asyncCall(nodeId string, w IWriter, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}) (CancelRpc, error) {
 	processorType, processor := GetProcessorType(args)
 	InParam, herr := processor.Marshal(args)
 	if herr != nil {
@@ -264,10 +264,7 @@ func (client *Client) asyncCall(nodeId string, w IWriter, timeout time.Duration,
 		return emptyCancelRpc, err
 	}
 
-	if cancelable {
-		rpcCancel := RpcCancel{CallSeq: seq, Cli: client}
-		return rpcCancel.CancelRpc, nil
-	}
 
-	return emptyCancelRpc, nil
+	rpcCancel := RpcCancel{CallSeq: seq, Cli: client}
+	return rpcCancel.CancelRpc, nil
 }

@@ -164,13 +164,6 @@ func (handler *RpcHandler) suitableMethods(method reflect.Method) error {
 	//取出输入参数类型
 	var rpcMethodInfo RpcMethodInfo
 	typ := method.Type
-	if typ.NumOut() != 1 {
-		return fmt.Errorf("%s The number of returned arguments must be 1", method.Name)
-	}
-
-	if typ.Out(0).String() != "error" {
-		return fmt.Errorf("%s The return parameter must be of type error", method.Name)
-	}
 
 	if typ.NumIn() < 2 || typ.NumIn() > 4 {
 		return fmt.Errorf("%s Unsupported parameter format", method.Name)
@@ -181,6 +174,18 @@ func (handler *RpcHandler) suitableMethods(method reflect.Method) error {
 	if typ.In(parIdx).String() == "rpc.RequestHandler" {
 		parIdx += 1
 		rpcMethodInfo.hasResponder = true
+	}
+
+	if rpcMethodInfo.hasResponder && typ.NumOut() > 0  {
+		return fmt.Errorf("%s should not have return parameters", method.Name)
+	}
+
+	if !rpcMethodInfo.hasResponder && typ.NumOut() != 1  {
+		return fmt.Errorf("%s The number of returned arguments must be 1", method.Name)
+	}
+
+	if !rpcMethodInfo.hasResponder && typ.Out(0).String() != "error" {
+		return fmt.Errorf("%s The return parameter must be of type error", method.Name)
 	}
 
 	for i := parIdx; i < typ.NumIn(); i++ {
@@ -307,9 +312,11 @@ func (handler *RpcHandler) HandlerRpcRequest(request *RpcRequest) {
 
 	requestHandle := request.requestHandle
 	returnValues := v.method.Func.Call(paramList)
-	errInter := returnValues[0].Interface()
-	if errInter != nil {
-		err = errInter.(error)
+	if len(returnValues) > 0 {
+		errInter := returnValues[0].Interface()
+		if errInter != nil {
+			err = errInter.(error)
+		}
 	}
 
 	if v.hasResponder == false && requestHandle != nil {
@@ -526,8 +533,7 @@ func (handler *RpcHandler) asyncCallRpc(timeout time.Duration, nodeId string, se
 	}
 
 	//2.rpcClient调用
-	//如果调用本结点服务
-	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, false)
+	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, )
 }
 
 func (handler *RpcHandler) GetName() string {
