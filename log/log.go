@@ -106,12 +106,12 @@ func (logger *Logger) Init() {
 		coreList = append(coreList, core)
 	}
 
-	if logger.LogPath != "" {
-		if logger.WriteSyncer == nil {
-			logger.WriteSyncer = zapcore.AddSync(logger.LogConfig)
-		}
-
+	if logger.WriteSyncer != nil {
 		core := zapcore.NewCore(logger.Encoder, logger.WriteSyncer, logger.LogLevel)
+		coreList = append(coreList, core)
+	}else if logger.LogPath != "" {
+		WriteSyncer := zapcore.AddSync(logger.LogConfig)
+		core := zapcore.NewCore(logger.Encoder, WriteSyncer, logger.LogLevel)
 		coreList = append(coreList, core)
 	}
 
