@@ -230,7 +230,6 @@ func initLog() error {
 	localNodeInfo := cluster.GetCluster().GetLocalNodeInfo()
 	fileName := fmt.Sprintf("%s.log", localNodeInfo.NodeId)
 	logger.FileName = fileName
-	filepath.Join()
 	logger.LogConfig.Filename = filepath.Join(logger.LogPath, logger.FileName)
 
 	logger.Init()
