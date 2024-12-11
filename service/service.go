@@ -264,12 +264,11 @@ func (s *Service) Release() {
 		}
 	}()
 
-	for i:=len(s.child)-1; i>=0; i-- {
-		s.ReleaseModule(s.child[i].GetModuleId())
-	}
-
 	if atomic.AddInt32(&s.isRelease, -1) == -1 {
 		s.self.OnRelease()
+		for i:=len(s.child)-1; i>=0; i-- {
+			s.ReleaseModule(s.child[i].GetModuleId())
+		}
 	}
 }
 

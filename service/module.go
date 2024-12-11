@@ -125,14 +125,15 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 
 func (m *Module) ReleaseModule(moduleId uint32) {
 	pModule := m.GetModule(moduleId).getBaseModule().(*Module)
-	//释放子孙
+	pModule.self.OnRelease()
+	log.Debug("Release module " + pModule.GetModuleName())
+
 	for i:=len(pModule.child)-1; i>=0; i-- {
 		m.ReleaseModule(pModule.child[i].GetModuleId())
 	}
 
-	pModule.self.OnRelease()
 	pModule.GetEventHandler().Destroy()
-	log.Debug("Release module " + pModule.GetModuleName())
+
 	for pTimer := range pModule.mapActiveTimer {
 		pTimer.Cancel()
 	}
