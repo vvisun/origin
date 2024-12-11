@@ -23,6 +23,7 @@ type Logger struct {
 	Encoder       zapcore.Encoder
 	LogConfig     *lumberjack.Logger
 	SugaredLogger *zap.SugaredLogger
+	WriteSyncer   zapcore.WriteSyncer
 }
 
 func SetLogger(logger *Logger) {
@@ -104,10 +105,13 @@ func (logger *Logger) Init() {
 		core := zapcore.NewCore(logger.Encoder, zapcore.AddSync(os.Stdout), logger.LogLevel)
 		coreList = append(coreList, core)
 	}
-	
+
 	if logger.LogPath != "" {
-		writeSyncer := zapcore.AddSync(logger.LogConfig)
-		core := zapcore.NewCore(logger.Encoder, writeSyncer, logger.LogLevel)
+		if logger.WriteSyncer == nil {
+			logger.WriteSyncer = zapcore.AddSync(logger.LogConfig)
+		}
+
+		core := zapcore.NewCore(logger.Encoder, logger.WriteSyncer, logger.LogLevel)
 		coreList = append(coreList, core)
 	}
 
