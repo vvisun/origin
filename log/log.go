@@ -22,11 +22,11 @@ type Logger struct {
 	LogLevel      zapcore.Level
 	Encoder       zapcore.Encoder
 	LogConfig     *lumberjack.Logger
-	sugaredLogger *zap.SugaredLogger
+	SugaredLogger *zap.SugaredLogger
 }
 
 func SetLogger(logger *Logger) {
-	if logger != nil && isSetLogger == false {
+	if logger != nil {
 		gLogger = logger
 		isSetLogger = true
 	}
@@ -95,13 +95,16 @@ func (logger *Logger) Enabled(zapcore.Level) bool {
 }
 
 func (logger *Logger) Init() {
-	var coreList []zapcore.Core
+	if isSetLogger {
+		return
+	}
 
+	var coreList []zapcore.Core
 	if logger.OpenConsole == nil || *logger.OpenConsole {
 		core := zapcore.NewCore(logger.Encoder, zapcore.AddSync(os.Stdout), logger.LogLevel)
 		coreList = append(coreList, core)
 	}
-
+	
 	if logger.LogPath != "" {
 		writeSyncer := zapcore.AddSync(logger.LogConfig)
 		core := zapcore.NewCore(logger.Encoder, writeSyncer, logger.LogLevel)
@@ -110,7 +113,7 @@ func (logger *Logger) Init() {
 
 	core := zapcore.NewTee(coreList...)
 	logger.Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(logger), zap.AddCallerSkip(1+logger.Skip))
-	logger.sugaredLogger = logger.Logger.Sugar()
+	logger.SugaredLogger = logger.Logger.Sugar()
 }
 
 func (logger *Logger) Debug(msg string, fields ...zap.Field) {
@@ -170,84 +173,84 @@ func Fatal(msg string, fields ...zap.Field) {
 }
 
 func Debugf(template string, args ...any) {
-	gLogger.sugaredLogger.Debugf(template, args...)
+	gLogger.SugaredLogger.Debugf(template, args...)
 }
 
 func Infof(template string, args ...any) {
-	gLogger.sugaredLogger.Infof(template, args...)
+	gLogger.SugaredLogger.Infof(template, args...)
 }
 
 func Warnf(template string, args ...any) {
-	gLogger.sugaredLogger.Warnf(template, args...)
+	gLogger.SugaredLogger.Warnf(template, args...)
 }
 
 func Errorf(template string, args ...any) {
-	gLogger.sugaredLogger.Errorf(template, args...)
+	gLogger.SugaredLogger.Errorf(template, args...)
 }
 
 func StackErrorf(template string, args ...any) {
 	gLogger.stack = true
-	gLogger.sugaredLogger.Errorf(template, args...)
+	gLogger.SugaredLogger.Errorf(template, args...)
 	gLogger.stack = false
 }
 
 func Fatalf(template string, args ...any) {
-	gLogger.sugaredLogger.Fatalf(template, args...)
+	gLogger.SugaredLogger.Fatalf(template, args...)
 }
 
 func (logger *Logger) SDebug(args ...interface{}) {
-	logger.sugaredLogger.Debugln(args...)
+	logger.SugaredLogger.Debugln(args...)
 }
 
 func (logger *Logger) SInfo(args ...interface{}) {
-	logger.sugaredLogger.Infoln(args...)
+	logger.SugaredLogger.Infoln(args...)
 }
 
 func (logger *Logger) SWarn(args ...interface{}) {
-	logger.sugaredLogger.Warnln(args...)
+	logger.SugaredLogger.Warnln(args...)
 }
 
 func (logger *Logger) SError(args ...interface{}) {
-	logger.sugaredLogger.Errorln(args...)
+	logger.SugaredLogger.Errorln(args...)
 }
 
 func (logger *Logger) SStackError(args ...interface{}) {
 	gLogger.stack = true
-	logger.sugaredLogger.Errorln(args...)
+	logger.SugaredLogger.Errorln(args...)
 	gLogger.stack = false
 }
 
 func (logger *Logger) SFatal(args ...interface{}) {
 	gLogger.stack = true
-	logger.sugaredLogger.Fatalln(args...)
+	logger.SugaredLogger.Fatalln(args...)
 	gLogger.stack = false
 }
 
 func SDebug(args ...interface{}) {
-	gLogger.sugaredLogger.Debugln(args...)
+	gLogger.SugaredLogger.Debugln(args...)
 }
 
 func SInfo(args ...interface{}) {
-	gLogger.sugaredLogger.Infoln(args...)
+	gLogger.SugaredLogger.Infoln(args...)
 }
 
 func SWarn(args ...interface{}) {
-	gLogger.sugaredLogger.Warnln(args...)
+	gLogger.SugaredLogger.Warnln(args...)
 }
 
 func SError(args ...interface{}) {
-	gLogger.sugaredLogger.Errorln(args...)
+	gLogger.SugaredLogger.Errorln(args...)
 }
 
 func SStackError(args ...interface{}) {
 	gLogger.stack = true
-	gLogger.sugaredLogger.Errorln(args...)
+	gLogger.SugaredLogger.Errorln(args...)
 	gLogger.stack = false
 }
 
 func SFatal(args ...interface{}) {
 	gLogger.stack = true
-	gLogger.sugaredLogger.Fatalln(args...)
+	gLogger.SugaredLogger.Fatalln(args...)
 	gLogger.stack = false
 }
 
