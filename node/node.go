@@ -486,9 +486,9 @@ func setLogPath(args interface{}) error {
 	}
 
 	if err != nil {
-		err = os.Mkdir(log.GetLogger().LogPath, os.ModePerm)
+		err = os.MkdirAll(logPath, os.ModePerm)
 		if err != nil {
-			return errors.New("Cannot create dir " + log.GetLogger().LogPath)
+			return errors.New("Cannot create dir " + logPath)
 		}
 	}
 
