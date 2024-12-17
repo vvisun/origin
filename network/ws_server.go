@@ -3,12 +3,13 @@ package network
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/gorilla/websocket"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/gorilla/websocket"
 )
 
 type WSServer struct {
@@ -53,7 +54,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	conn.SetReadLimit(int64(handler.maxMsgLen))
 	if handler.messageType == 0 {
-		handler.messageType = websocket.TextMessage
+		handler.messageType = websocket.BinaryMessage
 	}
 
 	handler.wg.Add(1)
