@@ -3,12 +3,13 @@ package mongodbmodule
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Student struct {
@@ -45,7 +46,7 @@ func Test_Example(t *testing.T) {
 	key2 = append(key2, "KeyId")
 
 	IndexKeys = append(IndexKeys, key1, key2)
-	session.EnsureIndex("testdb", "test2", IndexKeys, true)
+	session.EnsureIndex("testdb", "test2", IndexKeys, true, false, false)
 
 	//2.插入数据
 	//插入单行

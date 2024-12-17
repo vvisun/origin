@@ -1,11 +1,12 @@
 package log
 
 import (
+	"os"
+	"time"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"os"
-	"time"
 )
 
 var isSetLogger bool
@@ -108,7 +109,7 @@ func (logger *Logger) Init() {
 
 	if logger.CoreList != nil {
 		coreList = append(coreList, logger.CoreList...)
-	}else if logger.LogPath != "" {
+	} else if logger.LogPath != "" {
 		WriteSyncer := zapcore.AddSync(logger.LogConfig)
 		core := zapcore.NewCore(logger.Encoder, WriteSyncer, logger.LogLevel)
 		coreList = append(coreList, core)
@@ -147,31 +148,31 @@ func (logger *Logger) Fatal(msg string, fields ...zap.Field) {
 	gLogger.stack = false
 }
 
-func Debug(msg string, fields ...zap.Field) {
-	gLogger.Logger.Debug(msg, fields...)
+func Debug(fields ...interface{}) {
+	gLogger.SugaredLogger.Debug(fields...)
 }
 
-func Info(msg string, fields ...zap.Field) {
-	gLogger.Logger.Info(msg, fields...)
+func Info(msg string, fields ...interface{}) {
+	gLogger.SugaredLogger.Info(fields...)
 }
 
-func Warn(msg string, fields ...zap.Field) {
-	gLogger.Logger.Warn(msg, fields...)
+func Warn(msg string, fields ...interface{}) {
+	gLogger.SugaredLogger.Warn(fields...)
 }
 
-func Error(msg string, fields ...zap.Field) {
-	gLogger.Logger.Error(msg, fields...)
+func Error(msg string, fields ...interface{}) {
+	gLogger.SugaredLogger.Error(fields...)
 }
 
-func StackError(msg string, fields ...zap.Field) {
+func StackError(msg string, fields ...interface{}) {
 	gLogger.stack = true
-	gLogger.Logger.Error(msg, fields...)
+	gLogger.SugaredLogger.Error(fields...)
 	gLogger.stack = false
 }
 
-func Fatal(msg string, fields ...zap.Field) {
+func Fatal(msg string, fields ...interface{}) {
 	gLogger.stack = true
-	gLogger.Logger.Fatal(msg, fields...)
+	gLogger.SugaredLogger.Fatal(fields...)
 	gLogger.stack = false
 }
 

@@ -72,7 +72,7 @@ func (ss *Subscriber) UnSubscribe(customerId string) {
 
 	customerSubscriber, ok := ss.mapCustomer[customerId]
 	if ok == false {
-		log.SWarning("failed to unsubscribe customer " + customerId)
+		log.Warn("failed to unsubscribe customer " + customerId)
 		return
 	}
 

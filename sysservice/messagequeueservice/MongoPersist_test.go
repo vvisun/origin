@@ -2,9 +2,10 @@ package messagequeueservice
 
 import (
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var seq uint64
@@ -94,13 +95,13 @@ func Test_MongoPersist(t *testing.T) {
 			break
 		}
 
-		topicData, ret = mongoPersist.PersistTopicData("TestTopic", topicData, 1)
+		topicData, _, ret = mongoPersist.PersistTopicData("TestTopic", topicData, 1)
 		fmt.Println(ret)
 	}
 
 	//
 	for {
-		retTopicData := mongoPersist.FindTopicData("TestTopic", findStartIndex, 300)
+		retTopicData := mongoPersist.FindTopicData("TestTopic", findStartIndex, 300, topicData)
 		for i, data := range retTopicData {
 			var rowTest RowTest2
 			bson.Unmarshal(data.RawData, &rowTest)

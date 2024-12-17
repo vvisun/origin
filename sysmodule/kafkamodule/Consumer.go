@@ -3,10 +3,11 @@ package kafkamodule
 import (
 	"context"
 	"fmt"
-	"github.com/IBM/sarama"
-	"github.com/duanhf2012/origin/v2/log"
 	"sync"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/duanhf2012/origin/v2/log"
 )
 
 type ConsumerGroup struct {
@@ -248,7 +249,7 @@ func (ch *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession
 		select {
 		case msg := <-claim.Messages():
 			if msg == nil {
-				log.SWarning("claim will exit", log.Any("topic", claim.Topic()), log.Any("Partition", claim.Partition()))
+				log.Warn("claim will exit", log.Any("topic", claim.Topic()), log.Any("Partition", claim.Partition()))
 				return nil
 			}
 			ch.AppendMsg(session, msg)

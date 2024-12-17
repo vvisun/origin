@@ -2,10 +2,11 @@ package kafkamodule
 
 import (
 	"context"
+	"time"
+
 	"github.com/IBM/sarama"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/service"
-	"time"
 )
 
 type IProducer interface {
@@ -86,7 +87,7 @@ func (p *Producer) asyncRun() {
 			asyncReturn := sm.Metadata.(*AsyncReturn)
 			asyncReturn.chanReturn <- asyncReturn
 		case em := <-p.Errors():
-			log.Error("async kafkamodule error", log.ErrorAttr("err", em.Err))
+			log.Error("async kafkamodule error", em.Err)
 			if em.Msg.Metadata == nil {
 				break
 			}

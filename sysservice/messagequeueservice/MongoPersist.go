@@ -3,12 +3,13 @@ package messagequeueservice
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/duanhf2012/origin/v2/sysmodule/mongodbmodule"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
 const MaxDays = 180
@@ -237,7 +238,7 @@ func (mp *MongoPersist) findTopicData(topic string, startIndex uint64, limit int
 	defer cancelAll()
 	err = cursor.All(ctxAll, &res)
 	if err != nil {
-		log.Error("find collect name ", topic, " is error", log.ErrorAttr("err", err))
+		log.Error("find collect name ", topic, " is error", err)
 		return nil, false
 	}
 
@@ -246,7 +247,7 @@ func (mp *MongoPersist) findTopicData(topic string, startIndex uint64, limit int
 		rawData, errM := bson.Marshal(res[i])
 		if errM != nil {
 			if errM != nil {
-				log.Error("collect name ", topic, " Marshal is error", log.ErrorAttr("err", err))
+				log.Error("collect name ", topic, " Marshal is error", err)
 				return nil, false
 			}
 			continue

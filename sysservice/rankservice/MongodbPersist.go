@@ -2,16 +2,17 @@ package rankservice
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/duanhf2012/origin/v2/sysmodule/mongodbmodule"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"runtime"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 const batchRemoveNum = 128 //一切删除的最大数量
@@ -296,7 +297,7 @@ func (mp *MongoPersist) saveToDB() {
 			buf := make([]byte, 4096)
 			l := runtime.Stack(buf, false)
 			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(string(buf[:l]), log.String("error", errString))
 		}
 	}()
 
