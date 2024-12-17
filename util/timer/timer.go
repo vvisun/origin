@@ -124,10 +124,7 @@ func (t *Timer) IsOpen() bool {
 func (t *Timer) Do() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -210,10 +207,7 @@ func (c *Cron) Reset() {
 func (c *Cron) Do() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -266,10 +260,7 @@ func (c *Cron) UnRef() {
 func (c *Ticker) Do() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 

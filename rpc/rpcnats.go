@@ -27,9 +27,6 @@ func  (rn *RpcNats) NewNatsClient(targetNodeId string,localNodeId string,callSet
 
 	client.clientId = atomic.AddUint32(&clientSeq, 1)
 	client.targetNodeId = targetNodeId
-	//client.maxCheckCallRpcCount = DefaultMaxCheckCallRpcCount
-	//client.callRpcTimeout = DefaultRpcTimeout
-
 	natsClient := &rn.NatsClient
 	natsClient.localNodeId = localNodeId
 	natsClient.client = &client

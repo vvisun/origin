@@ -3,14 +3,13 @@ package messagequeueservice
 import (
 	"errors"
 	"fmt"
-	"strings"
-	"sync/atomic"
-	"time"
-
 	"github.com/duanhf2012/origin/v2/cluster"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/util/coroutine"
+	"strings"
+	"sync/atomic"
+	"time"
 )
 
 type CustomerSubscriber struct {

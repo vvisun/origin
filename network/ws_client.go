@@ -1,11 +1,10 @@
 package network
 
 import (
-	"sync"
-	"time"
-
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/gorilla/websocket"
+	"sync"
+	"time"
 )
 
 type WSClient struct {
@@ -15,7 +14,7 @@ type WSClient struct {
 	ConnectInterval  time.Duration
 	PendingWriteNum  int
 	MaxMsgLen        uint32
-	MessageType      int
+	MessageType		 int
 	HandshakeTimeout time.Duration
 	AutoReconnect    bool
 	NewAgent         func(*WSConn) Agent
@@ -23,6 +22,7 @@ type WSClient struct {
 	cons             WebsocketConnSet
 	wg               sync.WaitGroup
 	closeFlag        bool
+
 }
 
 func (client *WSClient) Start() {
@@ -40,23 +40,23 @@ func (client *WSClient) init() {
 
 	if client.ConnNum <= 0 {
 		client.ConnNum = 1
-		log.Info("invalid ConnNum", log.Int("reset", client.ConnNum))
+		log.Info("invalid ConnNum",log.Int("reset", client.ConnNum))
 	}
 	if client.ConnectInterval <= 0 {
 		client.ConnectInterval = 3 * time.Second
-		log.Info("invalid ConnectInterval", log.Duration("reset", client.ConnectInterval))
+		log.Info("invalid ConnectInterval",log.Duration("reset", client.ConnectInterval))
 	}
 	if client.PendingWriteNum <= 0 {
 		client.PendingWriteNum = 100
-		log.Info("invalid PendingWriteNum", log.Int("reset", client.PendingWriteNum))
+		log.Info("invalid PendingWriteNum",log.Int("reset", client.PendingWriteNum))
 	}
 	if client.MaxMsgLen <= 0 {
 		client.MaxMsgLen = 4096
-		log.Info("invalid MaxMsgLen", log.Uint32("reset", client.MaxMsgLen))
+		log.Info("invalid MaxMsgLen",log.Uint32("reset", client.MaxMsgLen))
 	}
 	if client.HandshakeTimeout <= 0 {
 		client.HandshakeTimeout = 10 * time.Second
-		log.Info("invalid HandshakeTimeout", log.Duration("reset", client.HandshakeTimeout))
+		log.Info("invalid HandshakeTimeout",log.Duration("reset", client.HandshakeTimeout))
 	}
 	if client.NewAgent == nil {
 		log.Fatal("NewAgent must not be nil")
@@ -66,7 +66,7 @@ func (client *WSClient) init() {
 	}
 
 	if client.MessageType == 0 {
-		client.MessageType = websocket.BinaryMessage
+		client.MessageType = websocket.TextMessage
 	}
 
 	client.cons = make(WebsocketConnSet)
@@ -83,7 +83,7 @@ func (client *WSClient) dial() *websocket.Conn {
 			return conn
 		}
 
-		log.Info("connect fail", log.String("error", err.Error()), log.String("addr", client.Addr))
+		log.Info("connect fail", log.String("error",err.Error()),log.String("addr",client.Addr))
 		time.Sleep(client.ConnectInterval)
 		continue
 	}
@@ -108,7 +108,7 @@ reconnect:
 	client.cons[conn] = struct{}{}
 	client.Unlock()
 
-	wsConn := newWSConn(conn, nil, client.PendingWriteNum, client.MaxMsgLen, client.MessageType)
+	wsConn := newWSConn(conn,nil, client.PendingWriteNum, client.MaxMsgLen,client.MessageType)
 	agent := client.NewAgent(wsConn)
 	agent.Run()
 

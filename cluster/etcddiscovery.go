@@ -10,13 +10,11 @@ import (
 	"go.etcd.io/etcd/client/v3"
 	"google.golang.org/protobuf/proto"
 	"time"
-
 	"context"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
 	"path"
-	"runtime"
 	"strings"
 	"sync/atomic"
 )
@@ -96,14 +94,14 @@ func (ed *EtcdDiscoveryService) OnInit() error {
 		})
 
 		if cerr != nil {
-			log.Error("etcd discovery init fail", log.ErrorAttr("err", cerr))
+			log.Error("etcd discovery init fail", log.ErrorField("err", cerr))
 			return cerr
 		}
 
 		ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 		_, err = client.Leases(ctx)
 		if err != nil {
-			log.Error("etcd discovery init fail", log.Any("endpoint", etcdDiscoveryCfg.EtcdList[i].Endpoints), log.ErrorAttr("err", err))
+			log.Error("etcd discovery init fail", log.Any("endpoint", etcdDiscoveryCfg.EtcdList[i].Endpoints), log.ErrorField("err", err))
 			return err
 		}
 
@@ -128,7 +126,7 @@ func (ed *EtcdDiscoveryService) registerServiceByClient(client *clientv3.Client,
 	var resp *clientv3.LeaseGrantResponse
 	resp, err = client.Grant(context.Background(), cluster.GetEtcdDiscovery().TTLSecond)
 	if err != nil {
-		log.Error("etcd registerService fail", log.ErrorAttr("err", err))
+		log.Error("etcd registerService fail", log.ErrorField("err", err))
 		ed.tryRegisterService(client, etcdClient)
 		return
 	}
@@ -138,7 +136,7 @@ func (ed *EtcdDiscoveryService) registerServiceByClient(client *clientv3.Client,
 		// 注册服务节点到 etcd
 		_, err = client.Put(context.Background(), ed.getRegisterKey(watchKey), ed.byteLocalNodeInfo, clientv3.WithLease(resp.ID))
 		if err != nil {
-			log.Error("etcd Put fail", log.ErrorAttr("err", err))
+			log.Error("etcd Put fail", log.ErrorField("err", err))
 			ed.tryRegisterService(client, etcdClient)
 			return
 		}
@@ -146,7 +144,7 @@ func (ed *EtcdDiscoveryService) registerServiceByClient(client *clientv3.Client,
 
 	etcdClient.keepAliveChan, err = client.KeepAlive(context.Background(), etcdClient.leaseID)
 	if err != nil {
-		log.Error("etcd KeepAlive fail", log.ErrorAttr("err", err))
+		log.Error("etcd KeepAlive fail", log.ErrorField("err", err))
 		ed.tryRegisterService(client, etcdClient)
 		return
 	}
@@ -200,7 +198,7 @@ func (ed *EtcdDiscoveryService) retire() error {
 			// 注册服务节点到 etcd
 			_, err := c.Put(context.Background(), ed.getRegisterKey(watchKey), ed.byteLocalNodeInfo, clientv3.WithLease(ec.leaseID))
 			if err != nil {
-				log.Error("etcd Put fail", log.ErrorAttr("err", err))
+				log.Error("etcd Put fail", log.ErrorField("err", err))
 				return err
 			}
 		}
@@ -285,12 +283,12 @@ func (ed *EtcdDiscoveryService) setNodeInfo(networkName string, nodeInfo *rpc.No
 func (ed *EtcdDiscoveryService) close() {
 	for c, ec := range ed.mapClient {
 		if _, err := c.Revoke(context.Background(), ec.leaseID); err != nil {
-			log.Error("etcd Revoke fail", log.ErrorAttr("err", err))
+			log.Error("etcd Revoke fail", log.ErrorField("err", err))
 		}
 		c.Watcher.Close()
 		err := c.Close()
 		if err != nil {
-			log.Error("etcd Close fail", log.ErrorAttr("err", err))
+			log.Error("etcd Close fail", log.ErrorField("err", err))
 		}
 	}
 }
@@ -299,7 +297,7 @@ func (ed *EtcdDiscoveryService) getServices(client *clientv3.Client, etcdClient 
 	// 根据前缀获取现有的key
 	resp, err := client.Get(context.Background(), watchKey, clientv3.WithPrefix())
 	if err != nil {
-		log.Error("etcd Get fail", log.ErrorAttr("err", err))
+		log.Error("etcd Get fail", log.ErrorField("err", err))
 		ed.tryWatch(client, etcdClient)
 		return false
 	}
@@ -322,11 +320,7 @@ func (ed *EtcdDiscoveryService) watchByClient(client *clientv3.Client, etcdClien
 func (ed *EtcdDiscoveryService) watcher(client *clientv3.Client, etcdClient *etcdClientInfo, watchKey string) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
-
+			log.StackError(fmt.Sprint(r))
 			ed.tryWatch(client, etcdClient)
 		}
 	}()
@@ -355,7 +349,7 @@ func (ed *EtcdDiscoveryService) setNode(netWorkName string, byteNode []byte) str
 	var nodeInfo rpc.NodeInfo
 	err := proto.Unmarshal(byteNode, &nodeInfo)
 	if err != nil {
-		log.Error("Unmarshal fail", log.String("netWorkName", netWorkName), log.ErrorAttr("err", err))
+		log.Error("Unmarshal fail", log.String("netWorkName", netWorkName), log.ErrorField("err", err))
 		return ""
 	}
 
@@ -494,7 +488,7 @@ func (ed *EtcdDiscoveryService) RPC_ServiceRecord(etcdServiceRecord *service.Etc
 		ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 		lg, err = client.Grant(ctx, etcdServiceRecord.TTLSecond)
 		if err != nil {
-			log.Error("etcd record fail,cannot grant lease", log.ErrorAttr("err", err))
+			log.Error("etcd record fail,cannot grant lease", log.ErrorField("err", err))
 			return errors.New("cannot grant lease")
 		}
 	}
@@ -503,14 +497,14 @@ func (ed *EtcdDiscoveryService) RPC_ServiceRecord(etcdServiceRecord *service.Etc
 		ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 		_, err = client.Put(ctx, path.Join(originDir, etcdServiceRecord.RecordKey), etcdServiceRecord.RecordInfo, clientv3.WithLease(lg.ID))
 		if err != nil {
-			log.Error("etcd record fail,cannot put record", log.ErrorAttr("err", err))
+			log.Error("etcd record fail,cannot put record", log.ErrorField("err", err))
 		}
 		return errors.New("cannot put record")
 	}
 
 	_, err = client.Put(context.Background(), path.Join(originDir, etcdServiceRecord.RecordKey), etcdServiceRecord.RecordInfo)
 	if err != nil {
-		log.Error("etcd record fail,cannot put record", log.ErrorAttr("err", err))
+		log.Error("etcd record fail,cannot put record", log.ErrorField("err", err))
 		return errors.New("cannot put record")
 	}
 

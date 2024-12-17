@@ -6,7 +6,7 @@ import (
 	"github.com/duanhf2012/origin/v2/network"
 	"math"
 	"reflect"
-	"runtime"
+
 	"sync/atomic"
 	"time"
 )
@@ -49,7 +49,7 @@ func (rc *RClient) Go(nodeId string, timeout time.Duration, rpcHandler IRpcHandl
 	_, processor := GetProcessorType(args)
 	InParam, err := processor.Marshal(args)
 	if err != nil {
-		log.Error("Marshal is fail", log.ErrorAttr("error", err))
+		log.Error("Marshal is fail", log.ErrorField("error", err))
 		call := MakeCall()
 		call.DoError(err)
 		return call
@@ -62,8 +62,8 @@ func (rc *RClient) RawGo(nodeId string, timeout time.Duration, rpcHandler IRpcHa
 	return rc.selfClient.rawGo(nodeId, rc, timeout, rpcHandler, processor, noReply, rpcMethodId, serviceMethod, rawArgs, reply)
 }
 
-func (rc *RClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}, cancelable bool) (CancelRpc, error) {
-	cancelRpc, err := rc.selfClient.asyncCall(nodeId, rc, timeout, rpcHandler, serviceMethod, callback, args, replyParam, cancelable)
+func (rc *RClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}) (CancelRpc, error) {
+	cancelRpc, err := rc.selfClient.asyncCall(nodeId, rc, timeout, rpcHandler, serviceMethod, callback, args, replyParam)
 	if err != nil {
 		callback.Call([]reflect.Value{reflect.ValueOf(replyParam), reflect.ValueOf(err)})
 	}
@@ -74,10 +74,7 @@ func (rc *RClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IR
 func (rc *RClient) Run() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -89,7 +86,7 @@ func (rc *RClient) Run() {
 	for {
 		bytes, err := rc.conn.ReadMsg()
 		if err != nil {
-			log.Error("RClient read msg is failed", log.ErrorAttr("error", err))
+			log.Error("RClient read msg is failed", log.ErrorField("error", err))
 			return
 		}
 

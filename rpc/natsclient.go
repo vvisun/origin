@@ -50,7 +50,7 @@ func (nc *NatsClient) Go(nodeId string, timeout time.Duration, rpcHandler IRpcHa
 	_, processor := GetProcessorType(args)
 	InParam, err := processor.Marshal(args)
 	if err != nil {
-		log.Error("Marshal is fail", log.ErrorAttr("error", err))
+		log.Error("Marshal is fail", log.ErrorField("error", err))
 		call := MakeCall()
 		call.DoError(err)
 		return call
@@ -63,8 +63,8 @@ func (nc *NatsClient) RawGo(nodeId string, timeout time.Duration, rpcHandler IRp
 	return nc.client.rawGo(nodeId, nc, timeout, rpcHandler, processor, noReply, rpcMethodId, serviceMethod, rawArgs, reply)
 }
 
-func (nc *NatsClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}, cancelable bool) (CancelRpc, error) {
-	cancelRpc, err := nc.client.asyncCall(nodeId, nc, timeout, rpcHandler, serviceMethod, callback, args, replyParam, cancelable)
+func (nc *NatsClient) AsyncCall(nodeId string, timeout time.Duration, rpcHandler IRpcHandler, serviceMethod string, callback reflect.Value, args interface{}, replyParam interface{}) (CancelRpc, error) {
+	cancelRpc, err := nc.client.asyncCall(nodeId, nc, timeout, rpcHandler, serviceMethod, callback, args, replyParam)
 	if err != nil {
 		callback.Call([]reflect.Value{reflect.ValueOf(replyParam), reflect.ValueOf(err)})
 	}

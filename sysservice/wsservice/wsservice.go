@@ -2,15 +2,14 @@ package wsservice
 
 import (
 	"fmt"
-	"strings"
-	"sync"
-
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/google/uuid"
+	"strings"
+	"sync"
 )
 
 type WSService struct {
@@ -31,7 +30,7 @@ const (
 	WPT_UnknownPack  WSPackType = 3
 )
 
-const Default_WS_MaxConnNum = 10000
+const Default_WS_MaxConnNum = 3000
 const Default_WS_PendingWriteNum = 10000
 const Default_WS_MaxMsgLen = 65535
 
@@ -49,13 +48,14 @@ type WSPack struct {
 }
 
 func (ws *WSService) OnInit() error {
+
 	iConfig := ws.GetServiceCfg()
 	if iConfig == nil {
 		return fmt.Errorf("%s service config is error", ws.GetName())
 	}
 	wsCfg := iConfig.(map[string]interface{})
 	addr, ok := wsCfg["ListenAddr"]
-	if !ok {
+	if ok == false {
 		return fmt.Errorf("%s service config is error", ws.GetName())
 	}
 
@@ -63,16 +63,18 @@ func (ws *WSService) OnInit() error {
 	ws.wsServer.MaxConnNum = Default_WS_MaxConnNum
 	ws.wsServer.PendingWriteNum = Default_WS_PendingWriteNum
 	ws.wsServer.MaxMsgLen = Default_WS_MaxMsgLen
-
-	if MaxConnNum, ok := wsCfg["MaxConnNum"]; ok {
+	MaxConnNum, ok := wsCfg["MaxConnNum"]
+	if ok == true {
 		ws.wsServer.MaxConnNum = int(MaxConnNum.(float64))
 	}
 
-	if PendingWriteNum, ok := wsCfg["PendingWriteNum"]; ok {
+	PendingWriteNum, ok := wsCfg["PendingWriteNum"]
+	if ok == true {
 		ws.wsServer.PendingWriteNum = int(PendingWriteNum.(float64))
 	}
 
-	if MaxMsgLen, ok := wsCfg["MaxMsgLen"]; ok {
+	MaxMsgLen, ok := wsCfg["MaxMsgLen"]
+	if ok == true {
 		ws.wsServer.MaxMsgLen = uint32(MaxMsgLen.(float64))
 	}
 
@@ -114,6 +116,8 @@ func (ws *WSService) NewWSClient(conn *network.WSConn) network.Agent {
 	pClient.wsService = ws
 	ws.mapClient[clientId] = pClient
 	return pClient
+
+	return nil
 }
 
 func (slf *WSClient) GetId() string {
@@ -125,7 +129,7 @@ func (slf *WSClient) Run() {
 	for {
 		bytes, err := slf.wsConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client id %s is error:%+v", slf.id, err)
+			log.Debugf("read client id %s is error:%+v", slf.id, err)
 			break
 		}
 		data, err := slf.wsService.process.Unmarshal(slf.id, bytes)
@@ -147,7 +151,7 @@ func (slf *WSClient) OnClose() {
 func (ws *WSService) SendMsg(clientId string, msg interface{}) error {
 	ws.mapClientLocker.Lock()
 	client, ok := ws.mapClient[clientId]
-	if !ok {
+	if ok == false {
 		ws.mapClientLocker.Unlock()
 		return fmt.Errorf("client %s is disconnect", clientId)
 	}
@@ -165,13 +169,15 @@ func (ws *WSService) Close(clientId string) {
 	defer ws.mapClientLocker.Unlock()
 
 	client, ok := ws.mapClient[clientId]
-	if !ok {
+	if ok == false {
 		return
 	}
 
 	if client.wsConn != nil {
 		client.wsConn.Close()
 	}
+
+	return
 }
 
 func (ws *WSService) recyclerReaderBytes(data []byte) {

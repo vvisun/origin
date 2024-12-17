@@ -3,12 +3,11 @@ package network
 import (
 	"errors"
 	"fmt"
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/util/bytespool"
 	"net"
 	"sync"
 	"time"
-
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/duanhf2012/origin/v2/util/bytespool"
 )
 
 const (

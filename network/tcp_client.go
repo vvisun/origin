@@ -1,11 +1,10 @@
 package network
 
 import (
+	"github.com/duanhf2012/origin/v2/log"
 	"net"
 	"sync"
 	"time"
-
-	"github.com/duanhf2012/origin/v2/log"
 )
 
 type TCPClient struct {

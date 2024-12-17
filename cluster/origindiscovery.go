@@ -471,7 +471,7 @@ func (dc *OriginDiscoveryClient) OnRelease() {
 
 		err := dc.CallNodeWithTimeout(3*time.Second, masterNodeList.MasterNodeList[i].NodeId, UnRegServiceDiscover, &nodeRetireReq, &rpc.Empty{})
 		if err != nil {
-			log.Error("call "+UnRegServiceDiscover+" is fail", log.ErrorAttr("err", err))
+			log.Error("call "+UnRegServiceDiscover+" is fail", log.ErrorField("err", err))
 		}
 	}
 }
@@ -493,7 +493,7 @@ func (dc *OriginDiscoveryClient) OnRetire() {
 
 		err := dc.GoNode(masterNodeList.MasterNodeList[i].NodeId, NodeRetireRpcMethod, &nodeRetireReq)
 		if err != nil {
-			log.Error("call "+NodeRetireRpcMethod+" is fail", log.ErrorAttr("err", err))
+			log.Error("call "+NodeRetireRpcMethod+" is fail", log.ErrorField("err", err))
 		}
 	}
 }

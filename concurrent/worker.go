@@ -5,7 +5,7 @@ import (
 
 	"errors"
 	"fmt"
-	"runtime"
+
 
 	"github.com/duanhf2012/origin/v2/log"
 )
@@ -51,15 +51,13 @@ func (w *worker) run(waitGroup *sync.WaitGroup, t task) {
 func (w *worker) exec(t *task) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
 			errString := fmt.Sprint(r)
 
 			cb := t.cb
 			t.cb = func(err error) {
 				cb(errors.New(errString))
 			}
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(errString)
 			w.endCallFun(true, t)
 		}
 	}()

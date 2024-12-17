@@ -48,7 +48,7 @@ func (ns *NatsServer) Start() error {
 
 	ns.natsConn, err = nats.Connect(ns.natsUrl, options...)
 	if err != nil {
-		log.Error("Connect to nats fail", log.String("natsUrl", ns.natsUrl), log.ErrorAttr("err", err))
+		log.Error("Connect to nats fail", log.String("natsUrl", ns.natsUrl), log.ErrorField("err", err))
 		return err
 	}
 
@@ -77,7 +77,7 @@ func (ns *NatsServer) WriteResponse(processor IRpcProcessor, nodeId string, serv
 	defer processor.ReleaseRpcResponse(rpcResponse.RpcResponseData)
 
 	if err != nil {
-		log.Error("marshal RpcResponseData failed", log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+		log.Error("marshal RpcResponseData failed", log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 		return
 	}
 
@@ -86,7 +86,7 @@ func (ns *NatsServer) WriteResponse(processor IRpcProcessor, nodeId string, serv
 	if ns.compressBytesLen > 0 && len(bytes) >= ns.compressBytesLen {
 		compressBuff, err = compressor.CompressBlock(bytes)
 		if err != nil {
-			log.Error("CompressBlock failed", log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+			log.Error("CompressBlock failed", log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 			return
 		}
 		if len(compressBuff) < len(bytes) {
@@ -106,7 +106,7 @@ func (ns *NatsServer) WriteResponse(processor IRpcProcessor, nodeId string, serv
 	}
 
 	if err != nil {
-		log.Error("WriteMsg error,Rpc return is fail", log.String("nodeId", nodeId), log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+		log.Error("WriteMsg error,Rpc return is fail", log.String("nodeId", nodeId), log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 	}
 }
 

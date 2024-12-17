@@ -11,6 +11,7 @@ import (
 	"github.com/duanhf2012/origin/v2/log"
 	rpcHandle "github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/util/timer"
+	"slices"
 )
 
 const InitModuleId = 1e9
@@ -32,7 +33,6 @@ type IModule interface {
 	GetModuleName() string
 	GetEventProcessor() event.IEventProcessor
 	NotifyEvent(ev event.IEvent)
-	GetEventHandler() event.IEventHandler
 }
 
 type IModuleTimer interface {
@@ -47,7 +47,7 @@ type Module struct {
 	moduleName       string             //模块名称
 	parent           IModule            //父亲
 	self             IModule            //自己
-	child            map[uint32]IModule //孩子们
+	child            []IModule //孩子们
 	mapActiveTimer   map[timer.ITimer]struct{}
 	mapActiveIdTimer map[uint64]timer.ITimer
 	dispatcher       *timer.Dispatcher //timer
@@ -94,10 +94,7 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 		pAddModule.moduleId = m.NewModuleId()
 	}
 
-	if m.child == nil {
-		m.child = map[uint32]IModule{}
-	}
-	_, ok := m.child[module.GetModuleId()]
+	_,ok := m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()]
 	if ok == true {
 		return 0, fmt.Errorf("exists module id %d", module.GetModuleId())
 	}
@@ -110,13 +107,17 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 	pAddModule.eventHandler = event.NewEventHandler()
 	pAddModule.eventHandler.Init(m.eventHandler.GetEventProcessor())
 	pAddModule.IConcurrent = m.IConcurrent
+
+	m.child = append(m.child,module)
+	m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()] = module
+
 	err := module.OnInit()
 	if err != nil {
+		delete(m.ancestor.getBaseModule().(*Module).descendants, module.GetModuleId())
+		m.child = m.child[:len(m.child)-1]
+		log.Error("module OnInit error",log.String("ModuleName",module.GetModuleName()),log.ErrorField("err",err))
 		return 0, err
 	}
-
-	m.child[module.GetModuleId()] = module
-	m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()] = module
 
 	log.Debug("Add module " + module.GetModuleName() + " completed")
 	return module.GetModuleId(), nil
@@ -124,15 +125,15 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 
 func (m *Module) ReleaseModule(moduleId uint32) {
 	pModule := m.GetModule(moduleId).getBaseModule().(*Module)
+	pModule.self.OnRelease()
+	log.Debug("Release module " + pModule.GetModuleName())
 
-	//释放子孙
-	for id := range pModule.child {
-		m.ReleaseModule(id)
+	for i:=len(pModule.child)-1; i>=0; i-- {
+		m.ReleaseModule(pModule.child[i].GetModuleId())
 	}
 
-	pModule.self.OnRelease()
 	pModule.GetEventHandler().Destroy()
-	log.Debug("Release module " + pModule.GetModuleName())
+
 	for pTimer := range pModule.mapActiveTimer {
 		pTimer.Cancel()
 	}
@@ -141,7 +142,10 @@ func (m *Module) ReleaseModule(moduleId uint32) {
 		t.Cancel()
 	}
 
-	delete(m.child, moduleId)
+	m.child = slices.DeleteFunc(m.child, func(module IModule) bool {
+		return module.GetModuleId() == moduleId
+	})
+
 	delete(m.ancestor.getBaseModule().(*Module).descendants, moduleId)
 
 	//清理被删除的Module
@@ -293,7 +297,7 @@ func (m *Module) CancelTimerId(timerId *uint64) bool {
 
 	t, ok := m.mapActiveIdTimer[*timerId]
 	if ok == false {
-		log.Stack("cannot find timer id ", log.Uint64("timerId", *timerId))
+		log.StackError("cannot find timer id ", log.Uint64("timerId", *timerId))
 		return false
 	}
 

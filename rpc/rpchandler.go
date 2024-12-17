@@ -6,7 +6,7 @@ import (
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"reflect"
-	"runtime"
+
 	"strings"
 	"time"
 	"unicode"
@@ -164,13 +164,6 @@ func (handler *RpcHandler) suitableMethods(method reflect.Method) error {
 	//取出输入参数类型
 	var rpcMethodInfo RpcMethodInfo
 	typ := method.Type
-	if typ.NumOut() != 1 {
-		return fmt.Errorf("%s The number of returned arguments must be 1", method.Name)
-	}
-
-	if typ.Out(0).String() != "error" {
-		return fmt.Errorf("%s The return parameter must be of type error", method.Name)
-	}
 
 	if typ.NumIn() < 2 || typ.NumIn() > 4 {
 		return fmt.Errorf("%s Unsupported parameter format", method.Name)
@@ -181,6 +174,18 @@ func (handler *RpcHandler) suitableMethods(method reflect.Method) error {
 	if typ.In(parIdx).String() == "rpc.RequestHandler" {
 		parIdx += 1
 		rpcMethodInfo.hasResponder = true
+	}
+
+	if rpcMethodInfo.hasResponder && typ.NumOut() > 0  {
+		return fmt.Errorf("%s should not have return parameters", method.Name)
+	}
+
+	if !rpcMethodInfo.hasResponder && typ.NumOut() != 1  {
+		return fmt.Errorf("%s The number of returned arguments must be 1", method.Name)
+	}
+
+	if !rpcMethodInfo.hasResponder && typ.Out(0).String() != "error" {
+		return fmt.Errorf("%s The return parameter must be of type error", method.Name)
 	}
 
 	for i := parIdx; i < typ.NumIn(); i++ {
@@ -220,10 +225,7 @@ func (handler *RpcHandler) RegisterRpc(rpcHandler IRpcHandler) error {
 func (handler *RpcHandler) HandlerRpcResponseCB(call *Call) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -242,10 +244,7 @@ func (handler *RpcHandler) HandlerRpcRequest(request *RpcRequest) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 			rpcErr := RpcError("call error : core dumps")
 			if request.requestHandle != nil {
 				request.requestHandle(nil, rpcErr)
@@ -313,9 +312,11 @@ func (handler *RpcHandler) HandlerRpcRequest(request *RpcRequest) {
 
 	requestHandle := request.requestHandle
 	returnValues := v.method.Func.Call(paramList)
-	errInter := returnValues[0].Interface()
-	if errInter != nil {
-		err = errInter.(error)
+	if len(returnValues) > 0 {
+		errInter := returnValues[0].Interface()
+		if errInter != nil {
+			err = errInter.(error)
+		}
 	}
 
 	if v.hasResponder == false && requestHandle != nil {
@@ -439,7 +440,7 @@ func (handler *RpcHandler) goRpc(processor IRpcProcessor, bCast bool, nodeId str
 	err, pClientList := handler.funcRpcClient(nodeId, serviceMethod, false, pClientList)
 	if len(pClientList) == 0 {
 		if err != nil {
-			log.Error("call serviceMethod is failed", log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+			log.Error("call serviceMethod is failed", log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 		} else {
 			log.Error("cannot find serviceMethod", log.String("serviceMethod", serviceMethod))
 		}
@@ -468,7 +469,7 @@ func (handler *RpcHandler) callRpc(timeout time.Duration, nodeId string, service
 	pClientList := make([]*Client, 0, maxClusterNode)
 	err, pClientList := handler.funcRpcClient(nodeId, serviceMethod, false, pClientList)
 	if err != nil {
-		log.Error("Call serviceMethod is failed", log.ErrorAttr("error", err))
+		log.Error("Call serviceMethod is failed", log.ErrorField("error", err))
 		return err
 	} else if len(pClientList) <= 0 {
 		err = errors.New("Call serviceMethod is error:cannot find " + serviceMethod)
@@ -532,8 +533,7 @@ func (handler *RpcHandler) asyncCallRpc(timeout time.Duration, nodeId string, se
 	}
 
 	//2.rpcClient调用
-	//如果调用本结点服务
-	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, false)
+	return pClientList[0].AsyncCall(pClientList[0].GetTargetNodeId(), timeout, handler.rpcHandler, serviceMethod, fVal, args, reply, )
 }
 
 func (handler *RpcHandler) GetName() string {
@@ -592,7 +592,7 @@ func (handler *RpcHandler) RawGoNode(rpcProcessorType RpcProcessorType, nodeId s
 	pClientList := make([]*Client, 0, 1)
 	err, pClientList := handler.funcRpcClient(nodeId, serviceName, false, pClientList)
 	if len(pClientList) == 0 || err != nil {
-		log.Error("call serviceMethod is failed", log.ErrorAttr("error", err))
+		log.Error("call serviceMethod is failed", log.ErrorField("error", err))
 		return err
 	}
 	if len(pClientList) > 1 {

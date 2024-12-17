@@ -23,7 +23,7 @@ func Init() {
 	for _,s := range setupServiceList {
 		err := s.OnInit()
 		if err != nil {
-			log.Error("Failed to initialize "+s.GetName()+" service",log.ErrorAttr("err",err))
+			log.Error("Failed to initialize "+s.GetName()+" service",log.ErrorField("err",err))
 			os.Exit(1)
 		}
 	}

@@ -42,7 +42,7 @@ func (server *BaseServer) selfNodeRpcHandlerGo(timeout time.Duration, processor 
 	rpcHandler := server.rpcHandleFinder.FindRpcHandler(handlerName)
 	if rpcHandler == nil {
 		err := errors.New("service method " + serviceMethod + " not config!")
-		log.Error("service method not config", log.String("serviceMethod", serviceMethod), log.ErrorAttr("error", err))
+		log.Error("service method not config", log.String("serviceMethod", serviceMethod), log.ErrorField("error", err))
 		pCall.Seq = 0
 		pCall.DoError(err)
 
@@ -74,7 +74,7 @@ func (server *BaseServer) selfNodeRpcHandlerGo(timeout time.Duration, processor 
 		var err error
 		req.inParam, err = rpcHandler.UnmarshalInParam(processor, serviceMethod, rpcMethodId, rawArgs)
 		if err != nil {
-			log.Error("unmarshalInParam is failed", log.String("serviceMethod", serviceMethod), log.Uint32("rpcMethodId", rpcMethodId), log.ErrorAttr("error", err))
+			log.Error("unmarshalInParam is failed", log.String("serviceMethod", serviceMethod), log.Uint32("rpcMethodId", rpcMethodId), log.ErrorField("error", err))
 			pCall.Seq = 0
 			pCall.DoError(err)
 			ReleaseRpcRequest(req)
@@ -90,12 +90,12 @@ func (server *BaseServer) selfNodeRpcHandlerGo(timeout time.Duration, processor 
 				byteReturns, err := req.rpcProcessor.Marshal(Returns)
 				if err != nil {
 					Err = ConvertError(err)
-					log.Error("returns data cannot be marshal", log.Uint64("seq", callSeq), log.ErrorAttr("error", err))
+					log.Error("returns data cannot be marshal", log.Uint64("seq", callSeq), log.ErrorField("error", err))
 				} else {
 					err = req.rpcProcessor.Unmarshal(byteReturns, reply)
 					if err != nil {
 						Err = ConvertError(err)
-						log.Error("returns data cannot be Unmarshal", log.Uint64("seq", callSeq), log.ErrorAttr("error", err))
+						log.Error("returns data cannot be Unmarshal", log.Uint64("seq", callSeq), log.ErrorField("error", err))
 					}
 				}
 			}
@@ -127,7 +127,7 @@ func (server *BaseServer) selfNodeRpcHandlerGo(timeout time.Duration, processor 
 	return pCall
 }
 
-func (server *BaseServer) selfNodeRpcHandlerAsyncGo(timeout time.Duration, client *Client, callerRpcHandler IRpcHandler, noReply bool, handlerName string, serviceMethod string, args interface{}, reply interface{}, callback reflect.Value, cancelable bool) (CancelRpc, error) {
+func (server *BaseServer) selfNodeRpcHandlerAsyncGo(timeout time.Duration, client *Client, callerRpcHandler IRpcHandler, noReply bool, handlerName string, serviceMethod string, args interface{}, reply interface{}, callback reflect.Value) (CancelRpc, error) {
 	rpcHandler := server.rpcHandleFinder.FindRpcHandler(handlerName)
 	if rpcHandler == nil {
 		err := errors.New("service method " + serviceMethod + " not config!")
@@ -266,7 +266,7 @@ func (server *BaseServer) processRpcRequest(data []byte, connTag string, wrRespo
 	req.inParam, err = rpcHandler.UnmarshalInParam(req.rpcProcessor, req.RpcRequestData.GetServiceMethod(), req.RpcRequestData.GetRpcMethodId(), req.RpcRequestData.GetInParam())
 	if err != nil {
 		rErr := "Call Rpc " + req.RpcRequestData.GetServiceMethod() + " Param error " + err.Error()
-		log.Error("call rpc param error", log.String("serviceMethod", req.RpcRequestData.GetServiceMethod()), log.ErrorAttr("error", err))
+		log.Error("call rpc param error", log.String("serviceMethod", req.RpcRequestData.GetServiceMethod()), log.ErrorField("error", err))
 		if req.requestHandle != nil {
 			req.requestHandle(nil, RpcError(rErr))
 		} else {

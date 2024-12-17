@@ -21,6 +21,7 @@ require (
 	go.mongodb.org/mongo-driver v1.9.1
 	go.uber.org/zap v1.27.0
 	google.golang.org/protobuf v1.34.1
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -58,7 +59,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/klauspost/reedsolomon v1.12.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lestrrat-go/strftime v1.1.0
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect

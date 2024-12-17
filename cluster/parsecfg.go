@@ -88,15 +88,16 @@ func yamlToJson(data []byte, v interface{}) ([]byte, error) {
 }
 
 func unmarshalConfig(data []byte, v interface{}) error {
-	if !json.Valid(data) {
+	envData := []byte(os.ExpandEnv(string(data)))
+	if !json.Valid(envData) {
 		var err error
-		data, err = yamlToJson(data, v)
+		envData, err = yamlToJson(envData, v)
 		if err != nil {
 			return err
 		}
 	}
 
-	return json.Unmarshal(data, v)
+	return json.Unmarshal(envData, v)
 }
 
 func (d *DiscoveryInfo) getDiscoveryType() DiscoveryType {
@@ -416,13 +417,12 @@ func (cls *Cluster) readLocalService(localNodeId string) error {
 	return nil
 }
 
-func (cls *Cluster) parseLocalCfg() {
+func (cls *Cluster) parseLocalCfg() error{
 	rpcInfo := NodeRpcInfo{}
 	rpcInfo.nodeInfo = cls.localNodeInfo
 	rpcInfo.client = rpc.NewLClient(rpcInfo.nodeInfo.NodeId, &cls.callSet)
 
 	cls.mapRpc[cls.localNodeInfo.NodeId] = &rpcInfo
-
 	for _, serviceName := range cls.localNodeInfo.ServiceList {
 		splitServiceName := strings.Split(serviceName, ":")
 		if len(splitServiceName) == 2 {
@@ -439,8 +439,13 @@ func (cls *Cluster) parseLocalCfg() {
 			cls.mapServiceNode[serviceName] = make(map[string]struct{})
 		}
 
+		if _,ok:=cls.mapServiceNode[serviceName][cls.localNodeInfo.NodeId];ok {
+			return fmt.Errorf("duplicate service %s is configured in node %s", serviceName, cls.localNodeInfo.NodeId)
+		}
 		cls.mapServiceNode[serviceName][cls.localNodeInfo.NodeId] = struct{}{}
 	}
+
+	return nil
 }
 
 func (cls *Cluster) IsNatsMode() bool {
@@ -473,8 +478,7 @@ func (cls *Cluster) InitCfg(localNodeId string) error {
 	}
 
 	//本地配置服务加到全局map信息中
-	cls.parseLocalCfg()
-	return nil
+	return cls.parseLocalCfg()
 }
 
 func (cls *Cluster) IsConfigService(serviceName string) bool {

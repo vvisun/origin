@@ -9,7 +9,6 @@ import (
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/duanhf2012/origin/v2/util/bytespool"
 	"github.com/google/uuid"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -140,10 +139,7 @@ func (slf *Client) GetId() string {
 func (slf *Client) Run() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -156,7 +152,7 @@ func (slf *Client) Run() {
 		slf.tcpConn.SetReadDeadline(slf.tcpService.tcpServer.ReadDeadline)
 		bytes, err := slf.tcpConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client failed", log.ErrorAttr("error", err), log.String("clientId", slf.id))
+			log.Debug("read client failed", log.ErrorField("error", err), log.String("clientId", slf.id))
 			break
 		}
 		data, err := slf.tcpService.process.Unmarshal(slf.id, bytes)

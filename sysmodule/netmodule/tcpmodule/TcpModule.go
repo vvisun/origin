@@ -8,7 +8,6 @@ import (
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/duanhf2012/origin/v2/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"runtime"
 	"sync"
 	"time"
 )
@@ -125,10 +124,7 @@ func (slf *Client) GetId() string {
 func (slf *Client) Run() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
@@ -137,7 +133,7 @@ func (slf *Client) Run() {
 		slf.tcpConn.SetReadDeadline(slf.tcpModule.tcpServer.ReadDeadline)
 		bytes, err := slf.tcpConn.ReadMsg()
 		if err != nil {
-			log.Debug("read client failed", log.ErrorAttr("error", err), log.String("clientId", slf.id))
+			log.Debug("read client failed", log.ErrorField("error", err), log.String("clientId", slf.id))
 			break
 		}
 		data, err := slf.tcpModule.process.Unmarshal(slf.id, bytes)
@@ -185,7 +181,7 @@ func (tm *TcpModule) Close(clientId string) {
 		client.tcpConn.Close()
 	}
 
-	log.SWarning("close client:", clientId)
+	log.SWarn("close client:", clientId)
 	return
 }
 

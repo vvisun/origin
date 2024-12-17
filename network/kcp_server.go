@@ -1,12 +1,11 @@
 package network
 
 import (
-	"sync"
-	"time"
-
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/xtaci/kcp-go/v5"
+	"sync"
+	"time"
 )
 
 type KCPServer struct {
@@ -204,7 +203,7 @@ func (kp *KCPServer) initSession(session *kcp.UDPSession) {
 func (kp *KCPServer) run(listener *kcp.Listener) bool {
 	conn, err := listener.Accept()
 	if err != nil {
-		log.Error("accept error", log.String("ListenAddr", kp.kcpCfg.ListenAddr), log.ErrorAttr("err", err))
+		log.Error("accept error", log.String("ListenAddr", kp.kcpCfg.ListenAddr), log.ErrorField("err", err))
 		return false
 	}
 

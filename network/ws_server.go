@@ -3,13 +3,12 @@ package network
 import (
 	"crypto/tls"
 	"errors"
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/gorilla/websocket"
 	"net"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/gorilla/websocket"
 )
 
 type WSServer struct {
@@ -44,7 +43,7 @@ func (handler *WSHandler) SetMessageType(messageType int) {
 
 func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", 405)
 		return
 	}
 	conn, err := handler.upgrader.Upgrade(w, r, nil)
@@ -54,7 +53,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	conn.SetReadLimit(int64(handler.maxMsgLen))
 	if handler.messageType == 0 {
-		handler.messageType = websocket.BinaryMessage
+		handler.messageType = websocket.TextMessage
 	}
 
 	handler.wg.Add(1)
@@ -104,7 +103,7 @@ func (server *WSServer) Start() error {
 	}
 
 	if server.MaxConnNum <= 0 {
-		server.MaxConnNum = 10000
+		server.MaxConnNum = 100
 		log.Info("invalid MaxConnNum", log.Int("reset", server.MaxConnNum))
 	}
 	if server.PendingWriteNum <= 0 {

@@ -11,7 +11,6 @@ import (
 	"github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/util/timer"
 	"reflect"
-	"runtime"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -261,17 +260,16 @@ func (s *Service) SetName(serviceName string) {
 func (s *Service) Release() {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			l := runtime.Stack(buf, false)
-			errString := fmt.Sprint(r)
-			log.Dump(string(buf[:l]), log.String("error", errString))
+			log.StackError(fmt.Sprint(r))
 		}
 	}()
 
 	if atomic.AddInt32(&s.isRelease, -1) == -1 {
 		s.self.OnRelease()
+		for i:=len(s.child)-1; i>=0; i-- {
+			s.ReleaseModule(s.child[i].GetModuleId())
+		}
 	}
-
 }
 
 func (s *Service) OnRelease() {
@@ -436,6 +434,7 @@ func (s *Service) SetEventChannelNum(num int) {
 	}
 }
 
+// Deprecated: replace it with the OpenConcurrent function
 func (s *Service) SetGoRoutineNum(goroutineNum int32) bool {
 	//已经开始状态不允许修改协程数量,打开性能分析器不允许开多线程
 	if s.startStatus == true || s.profiler != nil {
