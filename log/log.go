@@ -152,25 +152,25 @@ func Debug(fields ...interface{}) {
 	gLogger.SugaredLogger.Debug(fields...)
 }
 
-func Info(msg string, fields ...interface{}) {
+func Info(fields ...interface{}) {
 	gLogger.SugaredLogger.Info(fields...)
 }
 
-func Warn(msg string, fields ...interface{}) {
+func Warn(fields ...interface{}) {
 	gLogger.SugaredLogger.Warn(fields...)
 }
 
-func Error(msg string, fields ...interface{}) {
+func Error(fields ...interface{}) {
 	gLogger.SugaredLogger.Error(fields...)
 }
 
-func StackError(msg string, fields ...interface{}) {
+func StackError(fields ...interface{}) {
 	gLogger.stack = true
 	gLogger.SugaredLogger.Error(fields...)
 	gLogger.stack = false
 }
 
-func Fatal(msg string, fields ...interface{}) {
+func Fatal(fields ...interface{}) {
 	gLogger.stack = true
 	gLogger.SugaredLogger.Fatal(fields...)
 	gLogger.stack = false
