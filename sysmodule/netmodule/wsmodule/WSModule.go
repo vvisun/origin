@@ -14,7 +14,7 @@ import (
 type WSModule struct {
 	service.Module
 
-	wsServer network.WSServer
+	WSServer network.WSServer
 
 	mapClientLocker sync.RWMutex
 	mapClient       map[string]*WSClient
@@ -57,16 +57,16 @@ func (ws *WSModule) OnInit() error {
 		return fmt.Errorf("please call the Init function correctly")
 	}
 
-	ws.wsServer.MaxConnNum = ws.wsCfg.MaxConnNum
-	ws.wsServer.PendingWriteNum = ws.wsCfg.PendingWriteNum
-	ws.wsServer.MaxMsgLen = ws.wsCfg.MaxMsgLen
-	ws.wsServer.Addr = ws.wsCfg.ListenAddr
+	ws.WSServer.MaxConnNum = ws.wsCfg.MaxConnNum
+	ws.WSServer.PendingWriteNum = ws.wsCfg.PendingWriteNum
+	ws.WSServer.MaxMsgLen = ws.wsCfg.MaxMsgLen
+	ws.WSServer.Addr = ws.wsCfg.ListenAddr
 
 	//3.设置解析处理器
 	ws.process.SetByteOrder(ws.wsCfg.LittleEndian)
 
-	ws.mapClient = make(map[string]*WSClient, ws.wsServer.MaxConnNum)
-	ws.wsServer.NewAgent = ws.NewWSClient
+	ws.mapClient = make(map[string]*WSClient, ws.WSServer.MaxConnNum)
+	ws.WSServer.NewAgent = ws.NewWSClient
 
 	//4.设置网络事件处理
 	ws.GetEventProcessor().RegEventReceiverFunc(event.Sys_Event_WebSocket, ws.GetEventHandler(), ws.wsEventHandler)
@@ -80,7 +80,7 @@ func (ws *WSModule) Init(wsCfg *WSCfg, process processor.IRawProcessor) {
 }
 
 func (ws *WSModule) Start() error {
-	return ws.wsServer.Start()
+	return ws.WSServer.Start()
 }
 
 func (ws *WSModule) wsEventHandler(ev event.IEvent) {
@@ -196,4 +196,8 @@ func (ws *WSModule) SendRawMsg(clientId string, msg []byte) error {
 	}
 	ws.mapClientLocker.Unlock()
 	return client.wsConn.WriteMsg(msg)
+}
+
+func (ws *WSModule) SetMessageType(messageType int) {
+	ws.WSServer.SetMessageType(messageType)
 }
