@@ -6,12 +6,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"slices"
+
 	"github.com/duanhf2012/origin/v2/concurrent"
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	rpcHandle "github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/util/timer"
-	"slices"
 )
 
 const InitModuleId = 1e9
@@ -43,10 +44,10 @@ type IModuleTimer interface {
 
 type Module struct {
 	rpcHandle.IRpcHandler
-	moduleId         uint32             //模块Id
-	moduleName       string             //模块名称
-	parent           IModule            //父亲
-	self             IModule            //自己
+	moduleId         uint32    //模块Id
+	moduleName       string    //模块名称
+	parent           IModule   //父亲
+	self             IModule   //自己
 	child            []IModule //孩子们
 	mapActiveTimer   map[timer.ITimer]struct{}
 	mapActiveIdTimer map[uint64]timer.ITimer
@@ -94,8 +95,8 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 		pAddModule.moduleId = m.NewModuleId()
 	}
 
-	_,ok := m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()]
-	if ok == true {
+	_, ok := m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()]
+	if ok {
 		return 0, fmt.Errorf("exists module id %d", module.GetModuleId())
 	}
 	pAddModule.IRpcHandler = m.IRpcHandler
@@ -108,14 +109,14 @@ func (m *Module) AddModule(module IModule) (uint32, error) {
 	pAddModule.eventHandler.Init(m.eventHandler.GetEventProcessor())
 	pAddModule.IConcurrent = m.IConcurrent
 
-	m.child = append(m.child,module)
+	m.child = append(m.child, module)
 	m.ancestor.getBaseModule().(*Module).descendants[module.GetModuleId()] = module
 
 	err := module.OnInit()
 	if err != nil {
 		delete(m.ancestor.getBaseModule().(*Module).descendants, module.GetModuleId())
 		m.child = m.child[:len(m.child)-1]
-		log.Error("module OnInit error",log.String("ModuleName",module.GetModuleName()),log.ErrorField("err",err))
+		log.Error("module OnInit error", log.String("ModuleName", module.GetModuleName()), log.ErrorField("err", err))
 		return 0, err
 	}
 
@@ -128,7 +129,7 @@ func (m *Module) ReleaseModule(moduleId uint32) {
 	pModule.self.OnRelease()
 	log.Debug("Release module " + pModule.GetModuleName())
 
-	for i:=len(pModule.child)-1; i>=0; i-- {
+	for i := len(pModule.child) - 1; i >= 0; i-- {
 		m.ReleaseModule(pModule.child[i].GetModuleId())
 	}
 
@@ -170,10 +171,9 @@ var timerSeedId uint32
 func (m *Module) GenTimerId() uint64 {
 	for {
 		newTimerId := (uint64(m.GetModuleId()) << 32) | uint64(atomic.AddUint32(&timerSeedId, 1))
-		if _, ok := m.mapActiveIdTimer[newTimerId]; ok == true {
+		if _, ok := m.mapActiveIdTimer[newTimerId]; ok {
 			continue
 		}
-
 		return newTimerId
 	}
 }
@@ -184,7 +184,7 @@ func (m *Module) GetAncestor() IModule {
 
 func (m *Module) GetModule(moduleId uint32) IModule {
 	iModule, ok := m.GetAncestor().getBaseModule().(*Module).descendants[moduleId]
-	if ok == false {
+	if !ok {
 		return nil
 	}
 	return iModule
@@ -286,7 +286,7 @@ func (m *Module) SafeNewTicker(tickerId *uint64, d time.Duration, AdditionData i
 
 func (m *Module) CancelTimerId(timerId *uint64) bool {
 	if timerId == nil || *timerId == 0 {
-		log.Warn("timerId is invalid")
+		// log.Debug("timerId is invalid")
 		return false
 	}
 
@@ -296,8 +296,8 @@ func (m *Module) CancelTimerId(timerId *uint64) bool {
 	}
 
 	t, ok := m.mapActiveIdTimer[*timerId]
-	if ok == false {
-		log.StackError("cannot find timer id ", log.Uint64("timerId", *timerId))
+	if !ok {
+		log.Debug("cannot find timer id: ", *timerId)
 		return false
 	}
 
