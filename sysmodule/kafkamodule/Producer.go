@@ -87,7 +87,7 @@ func (p *Producer) asyncRun() {
 			asyncReturn := sm.Metadata.(*AsyncReturn)
 			asyncReturn.chanReturn <- asyncReturn
 		case em := <-p.Errors():
-			log.Error("async kafkamodule error", em.Err)
+			log.Error("async kafkamodule error", log.ErrorField("err", em.Err))
 			if em.Msg.Metadata == nil {
 				break
 			}

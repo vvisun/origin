@@ -249,7 +249,7 @@ func (ch *ConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession
 		select {
 		case msg := <-claim.Messages():
 			if msg == nil {
-				log.Warn("claim will exit", log.Any("topic", claim.Topic()), log.Any("Partition", claim.Partition()))
+				log.SWarn("claim will exit", log.Any("topic", claim.Topic()), log.Any("Partition", claim.Partition()))
 				return nil
 			}
 			ch.AppendMsg(session, msg)

@@ -83,6 +83,7 @@ type HttpSession struct {
 	sessionDone  chan *HttpSession
 }
 
+// Deprecated: replace it with the GinModule
 type HttpService struct {
 	service.Service
 

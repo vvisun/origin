@@ -2,8 +2,11 @@ package log
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/duanhf2012/rotatelogs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -11,25 +14,37 @@ import (
 
 var isSetLogger bool
 var gLogger = NewDefaultLogger()
+var LogLevel zapcore.Level
+var MaxSize int
+var LogPath string
+var OpenConsole *bool
+var LogChanLen int
 
 type Logger struct {
 	*zap.Logger
 	stack bool
 
-	OpenConsole   *bool
-	LogPath       string
-	FileName      string
-	Skip          int
-	LogLevel      zapcore.Level
-	Encoder       zapcore.Encoder
-	LogConfig     *lumberjack.Logger
-	SugaredLogger *zap.SugaredLogger
-	CoreList      []zapcore.Core
+	FileName       string
+	Skip           int
+	Encoder        zapcore.Encoder
+	SugaredLogger  *zap.SugaredLogger
+	CoreList       []zapcore.Core
+	WriteSyncerFun []func() zapcore.WriteSyncer
 }
 
+// 设置Logger
 func SetLogger(logger *Logger) {
 	if logger != nil {
 		gLogger = logger
+		isSetLogger = true
+	}
+}
+
+// 设置ZapLogger
+func SetZapLogger(zapLogger *zap.Logger) {
+	if zapLogger != nil {
+		gLogger = &Logger{}
+		gLogger.Logger = zapLogger
 		isSetLogger = true
 	}
 }
@@ -48,8 +63,8 @@ func (logger *Logger) SetSkip(skip int) {
 
 func GetJsonEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006-01-02 15:04:05.000"))
 	}
@@ -68,32 +83,72 @@ func GetTxtEncoder() zapcore.Encoder {
 	return zapcore.NewConsoleEncoder(encoderConfig)
 }
 
-func getLogConfig() *lumberjack.Logger {
+func (logger *Logger) getLogConfig() *lumberjack.Logger {
 	return &lumberjack.Logger{
-		Filename:   "",
-		MaxSize:    2048,
+		Filename:   filepath.Join(LogPath, logger.FileName),
+		MaxSize:    MaxSize,
 		MaxBackups: 0,
 		MaxAge:     0,
 		Compress:   false,
+		LocalTime:  true,
 	}
 }
 
 func NewDefaultLogger() *Logger {
 	logger := Logger{}
 	logger.Encoder = GetJsonEncoder()
-	logger.LogConfig = getLogConfig()
-	logger.LogConfig.LocalTime = true
+	core := zapcore.NewCore(logger.Encoder, zapcore.AddSync(os.Stdout), zap.InfoLevel)
+	logger.Logger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 
-	logger.Init()
 	return &logger
 }
 
-func (logger *Logger) SetLogLevel(level zapcore.Level) {
-	logger.LogLevel = level
+func (logger *Logger) SetSyncers(syncers ...func() zapcore.WriteSyncer) {
+	logger.WriteSyncerFun = syncers
+}
+
+func (logger *Logger) AppendSyncerFun(syncerFun func() zapcore.WriteSyncer) {
+	logger.WriteSyncerFun = append(logger.WriteSyncerFun, syncerFun)
+}
+
+func SetLogLevel(level zapcore.Level) {
+	LogLevel = level
 }
 
 func (logger *Logger) Enabled(zapcore.Level) bool {
 	return logger.stack
+}
+
+func (logger *Logger) NewLumberjackWriter() zapcore.WriteSyncer {
+	return zapcore.AddSync(
+		&lumberjack.Logger{
+			Filename:   filepath.Join(LogPath, logger.FileName),
+			MaxSize:    MaxSize,
+			MaxBackups: 0,
+			MaxAge:     0,
+			Compress:   false,
+			LocalTime:  true,
+		})
+}
+
+func (logger *Logger) NewRotatelogsWriter() zapcore.WriteSyncer {
+	var options []rotatelogs.Option
+
+	if MaxSize > 0 {
+		options = append(options, rotatelogs.WithRotateMaxSize(int64(MaxSize)))
+	}
+	if LogChanLen > 0 {
+		options = append(options, rotatelogs.WithChannelLen(LogChanLen))
+	}
+	options = append(options, rotatelogs.WithRotationTime(time.Hour*24))
+
+	fileName := strings.TrimRight(logger.FileName, filepath.Ext(logger.FileName))
+	rotateLogs, err := rotatelogs.NewRotateLogs(LogPath, "20060102/"+fileName+"_20060102_150405", options...)
+	if err != nil {
+		panic(err)
+	}
+
+	return zapcore.AddSync(rotateLogs)
 }
 
 func (logger *Logger) Init() {
@@ -101,18 +156,27 @@ func (logger *Logger) Init() {
 		return
 	}
 
+	var syncerList []zapcore.WriteSyncer
+	if logger.WriteSyncerFun == nil {
+		syncerList = append(syncerList, logger.NewRotatelogsWriter())
+	} else {
+		for _, syncer := range logger.WriteSyncerFun {
+			syncerList = append(syncerList, syncer())
+		}
+	}
+
 	var coreList []zapcore.Core
-	if logger.OpenConsole == nil || *logger.OpenConsole {
-		core := zapcore.NewCore(logger.Encoder, zapcore.AddSync(os.Stdout), logger.LogLevel)
+	if OpenConsole == nil || *OpenConsole {
+		syncerList = append(syncerList, zapcore.AddSync(os.Stdout))
+	}
+
+	for _, writer := range syncerList {
+		core := zapcore.NewCore(logger.Encoder, writer, LogLevel)
 		coreList = append(coreList, core)
 	}
 
 	if logger.CoreList != nil {
 		coreList = append(coreList, logger.CoreList...)
-	} else if logger.LogPath != "" {
-		WriteSyncer := zapcore.AddSync(logger.LogConfig)
-		core := zapcore.NewCore(logger.Encoder, WriteSyncer, logger.LogLevel)
-		coreList = append(coreList, core)
 	}
 
 	core := zapcore.NewTee(coreList...)

@@ -192,7 +192,7 @@ func (s *Service) run() {
 					break
 				}
 				if s.profiler != nil {
-					analyzer = s.profiler.Push("[Req]" + rpcRequest.RpcRequestData.GetServiceMethod())
+					analyzer = s.profiler.Push("[RpcReq]" + rpcRequest.RpcRequestData.GetServiceMethod()+"."+strconv.Itoa(int(rpcRequest.RpcRequestData.GetRpcMethodId())))
 				}
 
 				s.GetRpcHandler().HandlerRpcRequest(rpcRequest)

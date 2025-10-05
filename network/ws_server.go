@@ -74,9 +74,22 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	handler.conns[conn] = struct{}{}
 	handler.mutexConns.Unlock()
+	c,ok:=conn.NetConn().(*net.TCPConn)
+	if !ok {
+		tlsConn,ok := conn.NetConn().(*tls.Conn)
+		if !ok {
+			log.Error("conn error")
+			return
+		}
+		c,ok = tlsConn.NetConn().(*net.TCPConn)
+		if !ok {
+			log.Error("conn error")
+			return
+		}
+	}
 
-	conn.UnderlyingConn().(*net.TCPConn).SetLinger(0)
-	conn.UnderlyingConn().(*net.TCPConn).SetNoDelay(true)
+	c.SetLinger(0)
+	c.SetNoDelay(true)
 	wsConn := newWSConn(conn, r.Header, handler.pendingWriteNum, handler.maxMsgLen, handler.messageType)
 	agent := handler.newAgent(wsConn)
 	agent.Run()

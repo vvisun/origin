@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+// Deprecated: replace it with the WSModule
 type WSService struct {
 	service.Service
 	wsServer network.WSServer

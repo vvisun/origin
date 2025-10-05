@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// Deprecated: replace it with the TcpModule
 type TcpService struct {
 	tcpServer network.TCPServer
 	service.Service

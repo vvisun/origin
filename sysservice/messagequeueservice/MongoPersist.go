@@ -238,7 +238,7 @@ func (mp *MongoPersist) findTopicData(topic string, startIndex uint64, limit int
 	defer cancelAll()
 	err = cursor.All(ctxAll, &res)
 	if err != nil {
-		log.Error("find collect name ", topic, " is error", err)
+		log.Error("find collect name error", log.String("topic", topic), log.ErrorField("err", err))
 		return nil, false
 	}
 
@@ -247,7 +247,7 @@ func (mp *MongoPersist) findTopicData(topic string, startIndex uint64, limit int
 		rawData, errM := bson.Marshal(res[i])
 		if errM != nil {
 			if errM != nil {
-				log.Error("collect name ", topic, " Marshal is error", err)
+				log.Error("Marshal error", log.String("topic", topic), log.ErrorField("err", err))
 				return nil, false
 			}
 			continue
@@ -392,7 +392,7 @@ func (mp *MongoPersist) GetIndex(topicData *TopicData) uint64 {
 		if e.Key == "_id" {
 			errC, seq := convertToNumber[uint64](e.Value)
 			if errC != nil {
-				log.Error("value is error:%s,%+v, ", errC.Error(), e.Value)
+				log.Error("value is error", log.ErrorField("err", errC), log.Any("val", e.Value))
 			}
 
 			return seq

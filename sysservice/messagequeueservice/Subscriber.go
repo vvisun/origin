@@ -56,9 +56,9 @@ func (ss *Subscriber) TopicSubscribe(rpcHandler rpc.IRpcHandler, subScribeType r
 		}
 
 		if ok == true {
-			log.Info("repeat subscription for customer ", customerId)
+			log.SInfo("repeat subscription for customer ", customerId)
 		} else {
-			log.Info("subscription for customer ", customerId)
+			log.SInfo("subscription for customer ", customerId)
 		}
 
 	}
@@ -72,7 +72,7 @@ func (ss *Subscriber) UnSubscribe(customerId string) {
 
 	customerSubscriber, ok := ss.mapCustomer[customerId]
 	if ok == false {
-		log.Warn("failed to unsubscribe customer " + customerId)
+		log.SWarn("failed to unsubscribe customer ", customerId)
 		return
 	}
 

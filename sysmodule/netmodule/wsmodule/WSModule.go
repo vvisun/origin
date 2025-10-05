@@ -34,6 +34,8 @@ type WSCfg struct {
 	PendingWriteNum int
 	MaxMsgLen       uint32
 	LittleEndian    bool //是否小端序
+	KeyFile 		string
+	CertFile 		string
 }
 
 type WSPackType int8
@@ -62,13 +64,18 @@ func (ws *WSModule) OnInit() error {
 	ws.WSServer.MaxMsgLen = ws.wsCfg.MaxMsgLen
 	ws.WSServer.Addr = ws.wsCfg.ListenAddr
 
-	//3.设置解析处理器
+	if ws.wsCfg.KeyFile != "" && ws.wsCfg.CertFile != "" {
+		ws.WSServer.KeyFile = ws.wsCfg.KeyFile
+		ws.WSServer.CertFile = ws.wsCfg.CertFile
+	}
+
+	// 设置解析处理器
 	ws.process.SetByteOrder(ws.wsCfg.LittleEndian)
 
 	ws.mapClient = make(map[string]*WSClient, ws.WSServer.MaxConnNum)
 	ws.WSServer.NewAgent = ws.NewWSClient
 
-	//4.设置网络事件处理
+	// 设置网络事件处理
 	ws.GetEventProcessor().RegEventReceiverFunc(event.Sys_Event_WebSocket, ws.GetEventHandler(), ws.wsEventHandler)
 
 	return nil

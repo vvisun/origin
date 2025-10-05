@@ -40,8 +40,6 @@ type NodeInfo struct {
 	DiscoveryService  []DiscoveryService //筛选发现的服务，如果不配置，不进行筛选
 	status            NodeStatus
 	Retire            bool
-
-	NetworkName string
 }
 
 type NodeRpcInfo struct {

@@ -17,7 +17,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -50,7 +49,7 @@ func init() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, SingleStop, SignalRetire)
 
 	console.RegisterCommandBool("help", false, "<-help> This help.", usage)
-	console.RegisterCommandString("name", "", "<-name nodeName> Node's name.", setName)
+	console.RegisterCommandString("name", "", "<-name nodeName> node's name.", setName)
 	console.RegisterCommandString("start", "", "<-start nodeid=nodeid> Run originserver.", startNode)
 	console.RegisterCommandString("stop", "", "<-stop nodeid=nodeid> Stop originserver process.", stopNode)
 	console.RegisterCommandString("retire", "", "<-retire nodeid=nodeid> retire originserver process.", retireNode)
@@ -59,6 +58,7 @@ func init() {
 	console.RegisterCommandString("loglevel", "debug", "<-loglevel debug|info|warn|error|stackerror|fatal> Set loglevel.", setLevel)
 	console.RegisterCommandString("logpath", "", "<-logpath path> Set log file path.", setLogPath)
 	console.RegisterCommandInt("logsize", 0, "<-logsize size> Set log size(MB).", setLogSize)
+	console.RegisterCommandInt("logchanlen", 0, "<-logchanlen len> Set log channel len.", setLogChanLen)
 	console.RegisterCommandString("pprof", "", "<-pprof ip:port> Open performance analysis.", setPprof)
 }
 
@@ -220,7 +220,7 @@ func initNode(id string) {
 
 func initLog() error {
 	logger := log.GetLogger()
-	if logger.LogPath == "" {
+	if log.LogPath == "" {
 		err := setLogPath("./log")
 		if err != nil {
 			return err
@@ -230,7 +230,6 @@ func initLog() error {
 	localNodeInfo := cluster.GetCluster().GetLocalNodeInfo()
 	fileName := fmt.Sprintf("%s.log", localNodeInfo.NodeId)
 	logger.FileName = fileName
-	logger.LogConfig.Filename = filepath.Join(logger.LogPath, logger.FileName)
 
 	logger.Init()
 	return nil
@@ -440,10 +439,10 @@ func openConsole(args interface{}) error {
 	strOpen := strings.ToLower(strings.TrimSpace(args.(string)))
 	if strOpen == "false" {
 		bOpenConsole := false
-		log.GetLogger().OpenConsole = &bOpenConsole
+		log.OpenConsole = &bOpenConsole
 	} else if strOpen == "true" {
 		bOpenConsole := true
-		log.GetLogger().OpenConsole = &bOpenConsole
+		log.OpenConsole = &bOpenConsole
 	} else {
 		return errors.New("parameter console error")
 	}
@@ -458,17 +457,17 @@ func setLevel(args interface{}) error {
 	strlogLevel := strings.TrimSpace(args.(string))
 	switch strlogLevel {
 	case "debug":
-		log.GetLogger().LogLevel = zapcore.DebugLevel
+		log.LogLevel = zapcore.DebugLevel
 	case "info":
-		log.GetLogger().LogLevel = zapcore.InfoLevel
+		log.LogLevel = zapcore.InfoLevel
 	case "warn":
-		log.GetLogger().LogLevel = zapcore.WarnLevel
+		log.LogLevel = zapcore.WarnLevel
 	case "error":
-		log.GetLogger().LogLevel = zapcore.ErrorLevel
+		log.LogLevel = zapcore.ErrorLevel
 	case "stackerror":
-		log.GetLogger().LogLevel = zapcore.ErrorLevel
+		log.LogLevel = zapcore.ErrorLevel
 	case "fatal":
-		log.GetLogger().LogLevel = zapcore.FatalLevel
+		log.LogLevel = zapcore.FatalLevel
 	default:
 		return errors.New("unknown level: " + strlogLevel)
 	}
@@ -480,11 +479,7 @@ func setLogPath(args interface{}) error {
 		return nil
 	}
 	logPath := strings.TrimSpace(args.(string))
-	dir, err := os.Stat(logPath)
-	if err == nil && dir.IsDir() == false {
-		return errors.New("Not found dir " + logPath)
-	}
-
+	_, err := os.Stat(logPath)
 	if err != nil {
 		err = os.MkdirAll(logPath, os.ModePerm)
 		if err != nil {
@@ -492,7 +487,7 @@ func setLogPath(args interface{}) error {
 		}
 	}
 
-	log.GetLogger().LogPath = logPath
+	log.LogPath = logPath
 	return nil
 }
 
@@ -505,7 +500,20 @@ func setLogSize(args interface{}) error {
 		return nil
 	}
 
-	log.GetLogger().LogConfig.MaxSize = logSize
+	log.MaxSize = logSize
 
+	return nil
+}
+
+func setLogChanLen(args interface{}) error {
+	logChanLen, ok := args.(int)
+	if ok == false {
+		return errors.New("param logsize is error")
+	}
+	if logChanLen == 0 {
+		return nil
+	}
+
+	log.LogChanLen = logChanLen
 	return nil
 }

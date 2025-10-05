@@ -95,7 +95,7 @@ func (m *MySQLModule) Begin() (*Tx, error) {
 	var txDBModule Tx
 	txDb, err := m.db.Begin()
 	if err != nil {
-		log.Error("Begin error:%s", err.Error())
+		log.Error("Begin error", log.ErrorField("err",err))
 		return &txDBModule, err
 	}
 	txDBModule.slowDuration = m.slowDuration
@@ -155,7 +155,7 @@ func (m *MySQLModule) runPing() {
 	for {
 		select {
 		case <-m.pingCoroutine.pintExit:
-			log.Error("RunPing stopping %s...", fmt.Sprintf("%T", m))
+			log.Error("RunPing stopping",log.String("url", m.url),log.String("dbname", m.dbname))
 			return
 		case <-m.pingCoroutine.tickerPing.C:
 			if m.db != nil {
@@ -221,12 +221,12 @@ func query(slowDuration time.Duration, db dbControl, strQuery string, args ...in
 	datasetList.blur = true
 
 	if checkArgs(args) != nil {
-		log.Error("CheckArgs is error :%s", strQuery)
+		log.Error("CheckArgs is error",log.String("sql",strQuery))
 		return &datasetList, fmt.Errorf("checkArgs is error")
 	}
 
 	if db == nil {
-		log.Error("cannot connect database:%s", strQuery)
+		log.Error("cannot connect database",log.String("sql", strQuery))
 		return &datasetList, fmt.Errorf("cannot connect database")
 	}
 
@@ -235,10 +235,10 @@ func query(slowDuration time.Duration, db dbControl, strQuery string, args ...in
 	timeFuncPass := time.Since(TimeFuncStart)
 
 	if checkSlow(slowDuration, timeFuncPass) {
-		log.Error("DBModule QueryEx Time %s , Query :%s , args :%+v", timeFuncPass, strQuery, args)
+		log.Error("Query slow",log.Int64("time_ms",timeFuncPass.Milliseconds()),log.String("sql", strQuery), log.Any("args",args))
 	}
 	if err != nil {
-		log.Error("Query:%s(%v)", strQuery, err)
+		log.Error("Query error", log.String("sql",strQuery),log.ErrorField("err",err))
 		if rows != nil {
 			rows.Close()
 		}
@@ -278,8 +278,8 @@ func query(slowDuration time.Duration, db dbControl, strQuery string, args ...in
 		hasRet := rows.NextResultSet()
 
 		if hasRet == false {
-			if rows.Err() != nil {
-				log.Error("Query:%s(%+v)", strQuery, rows)
+			if rowErr :=rows.Err();rowErr != nil {
+				log.Error("NextResultSet error", log.String("sql",strQuery), log.ErrorField("err",rowErr))
 			}
 			break
 		}
@@ -291,12 +291,12 @@ func query(slowDuration time.Duration, db dbControl, strQuery string, args ...in
 func exec(slowDuration time.Duration, db dbControl, strSql string, args ...interface{}) (*DBResult, error) {
 	ret := &DBResult{}
 	if db == nil {
-		log.Error("cannot connect database:%s", strSql)
+		log.Error("cannot connect database", log.String("sql",strSql))
 		return ret, fmt.Errorf("cannot connect database")
 	}
 
 	if checkArgs(args) != nil {
-		log.Error("CheckArgs is error :%s", strSql)
+		log.Error("CheckArgs is error", log.String("sql",strSql))
 		return ret, fmt.Errorf("checkArgs is error")
 	}
 
@@ -304,10 +304,10 @@ func exec(slowDuration time.Duration, db dbControl, strSql string, args ...inter
 	res, err := db.Exec(strSql, args...)
 	timeFuncPass := time.Since(TimeFuncStart)
 	if checkSlow(slowDuration, timeFuncPass) {
-		log.Error("DBModule QueryEx Time %s , Query :%s , args :%+v", timeFuncPass, strSql, args)
+		log.Error("Exec slow",log.Int64("time_ms",timeFuncPass.Milliseconds()),log.String("sql",strSql),log.Any("args",args) )
 	}
 	if err != nil {
-		log.Error("Exec:%s(%v)", strSql, err)
+		log.Error("Exec error",log.String("sql",strSql),log.ErrorField("err", err))
 		return nil, err
 	}
 
