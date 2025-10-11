@@ -12,7 +12,7 @@ func TestExecMgr(t *testing.T) {
 	}
 
 	graphTest1 := bp.Create("testSwitch")
-	err = graphTest1.Do(EntranceID_IntParam, 2, 1, 3)
+	err = graphTest1.Do(EntranceID_IntParam, 20, 1, 3)
 	if err != nil {
 		t.Fatalf("Do EntranceID_IntParam failed,err:%v", err)
 	}

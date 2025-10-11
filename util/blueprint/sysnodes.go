@@ -408,7 +408,6 @@ func (em *RangeCompare) GetName() string {
 }
 
 func (em *RangeCompare) Exec() (int, error) {
-
 	inPortA := em.GetInPort(1)
 	if inPortA == nil {
 		return -1, fmt.Errorf("GreaterThanInteger inParam 1 not found")
@@ -424,8 +423,8 @@ func (em *RangeCompare) Exec() (int, error) {
 		return 0, nil
 	}
 
-	for i := range intArray {
-		if intArray[i] <= ret {
+	for i := 0; i < len(intArray) && i < em.GetOutPortCount()-2; i++ {
+		if ret <= intArray[i] {
 			return i + 2, nil
 		}
 	}

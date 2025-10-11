@@ -54,7 +54,14 @@ func (en *execNode) GetInPortDefaultIntArrayValue(index int) []int64 {
 		return nil
 	}
 
-	return val.([]int64)
+	var arrayInt []int64
+	arrayVal := val.([]any)
+	for i := range arrayVal {
+		if intVal, ok := arrayVal[i].(float64); ok {
+			arrayInt = append(arrayInt, int64(intVal))
+		}
+	}
+	return arrayInt
 }
 
 func (en *execNode) GetInPortDefaultStringArrayValue(index int) []string {
