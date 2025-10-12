@@ -192,67 +192,27 @@ func Errorf(template string, args ...any) {
 	gLogger.SugaredLogger.Errorf(template, args...)
 }
 
-func StackErrorf(template string, args ...any) {
-	gLogger.stack = true
-	gLogger.SugaredLogger.Errorf(template, args...)
-	gLogger.stack = false
-}
-
 func Fatalf(template string, args ...any) {
 	gLogger.SugaredLogger.Fatalf(template, args...)
 }
 
-func (logger *Logger) SDebug(args ...interface{}) {
-	logger.SugaredLogger.Debugln(args...)
-}
-
-func (logger *Logger) SInfo(args ...interface{}) {
-	logger.SugaredLogger.Infoln(args...)
-}
-
-func (logger *Logger) SWarn(args ...interface{}) {
-	logger.SugaredLogger.Warnln(args...)
-}
-
-func (logger *Logger) SError(args ...interface{}) {
-	logger.SugaredLogger.Errorln(args...)
-}
-
-func (logger *Logger) SStackError(args ...interface{}) {
-	gLogger.stack = true
-	logger.SugaredLogger.Errorln(args...)
-	gLogger.stack = false
-}
-
-func (logger *Logger) SFatal(args ...interface{}) {
-	gLogger.stack = true
-	logger.SugaredLogger.Fatalln(args...)
-	gLogger.stack = false
-}
-
-func SDebug(args ...interface{}) {
+func Debunln(args ...interface{}) {
 	gLogger.SugaredLogger.Debugln(args...)
 }
 
-func SInfo(args ...interface{}) {
+func Infoln(args ...interface{}) {
 	gLogger.SugaredLogger.Infoln(args...)
 }
 
-func SWarn(args ...interface{}) {
+func Warnln(args ...interface{}) {
 	gLogger.SugaredLogger.Warnln(args...)
 }
 
-func SError(args ...interface{}) {
+func Errorln(args ...interface{}) {
 	gLogger.SugaredLogger.Errorln(args...)
 }
 
-func SStackError(args ...interface{}) {
-	gLogger.stack = true
-	gLogger.SugaredLogger.Errorln(args...)
-	gLogger.stack = false
-}
-
-func SFatal(args ...interface{}) {
+func Fatalln(args ...interface{}) {
 	gLogger.stack = true
 	gLogger.SugaredLogger.Fatalln(args...)
 	gLogger.stack = false

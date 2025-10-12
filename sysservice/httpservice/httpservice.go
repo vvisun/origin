@@ -2,16 +2,17 @@ package httpservice
 
 import (
 	"fmt"
-	"github.com/duanhf2012/origin/v2/event"
-	"github.com/duanhf2012/origin/v2/network"
-	"github.com/duanhf2012/origin/v2/service"
-	"github.com/duanhf2012/origin/v2/util/uuid"
-	jsoniter "github.com/json-iterator/go"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/event"
+	"github.com/duanhf2012/origin/v2/network"
+	"github.com/duanhf2012/origin/v2/service"
+	"github.com/duanhf2012/origin/v2/util/uuid"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -83,6 +84,7 @@ type HttpSession struct {
 	sessionDone  chan *HttpSession
 }
 
+// deprecated. use netmodule/GinModule instead.
 type HttpService struct {
 	service.Service
 

@@ -2,14 +2,15 @@ package tcpmodule
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/duanhf2012/origin/v2/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"sync"
-	"time"
 )
 
 type TcpModule struct {
@@ -181,7 +182,7 @@ func (tm *TcpModule) Close(clientId string) {
 		client.tcpConn.Close()
 	}
 
-	log.SWarn("close client:", clientId)
+	log.Warnln("close client:", clientId)
 	return
 }
 

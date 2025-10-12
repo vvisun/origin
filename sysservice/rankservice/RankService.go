@@ -142,7 +142,7 @@ func (rs *RankService) RPC_DeleteRankDataByKey(delInfo *rpc.DeleteByKey, delResu
 
 	removeCount := rankSkip.DeleteRankData(delInfo.KeyList)
 	if removeCount == 0 {
-		log.SError("remove count is zero")
+		log.Errorln("remove count is zero")
 	}
 
 	delResult.RemoveCount = removeCount
@@ -190,7 +190,7 @@ func (rs *RankService) RPC_FindRankDataList(findInfo *rpc.FindRankDataList, find
 	rankObj, ok := rs.mapRankSkip[findInfo.RankId]
 	if ok == false || rankObj == nil {
 		err := fmt.Errorf("not config rank %d", findInfo.RankId)
-		log.SError(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 

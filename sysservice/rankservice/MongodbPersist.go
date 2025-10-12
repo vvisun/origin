@@ -67,7 +67,7 @@ func (mp *MongoPersist) OnInit() error {
 	//开始运行
 	err = mp.mongo.Start()
 	if err != nil {
-		log.SError("start dbService[", mp.dbName, "], url[", mp.url, "] init error:", err.Error())
+		log.Errorln("start dbService[", mp.dbName, "], url[", mp.url, "] init error:", err.Error())
 		return err
 	}
 
@@ -146,7 +146,7 @@ func (mp *MongoPersist) OnSetupRank(manual bool, rankSkip *RankSkip) error {
 	log.Info("start load rank ", rankSkip.GetRankName(), " from mongodb.")
 	err := mp.loadFromDB(rankSkip.GetRankID(), rankSkip.GetRankName())
 	if err != nil {
-		log.SError("load from db is fail :%s", err.Error())
+		log.Errorln("load from db is fail :%s", err.Error())
 		return err
 	}
 	log.Info("finish load rank ", rankSkip.GetRankName(), " from mongodb.")
@@ -161,19 +161,19 @@ func (mp *MongoPersist) loadFromDB(rankId uint64, rankCollectName string) error 
 	condition := bson.D{}
 	cursor, err := s.Collection(mp.dbName, rankCollectName).Find(ctx, condition)
 	if err != nil {
-		log.SError("find collect name ", rankCollectName, " is error:", err.Error())
+		log.Errorln("find collect name ", rankCollectName, " is error:", err.Error())
 		return err
 	}
 
 	if cursor.Err() != nil {
-		log.SError("find collect name ", rankCollectName, " is error:", cursor.Err().Error())
+		log.Errorln("find collect name ", rankCollectName, " is error:", cursor.Err().Error())
 		return err
 	}
 
 	rankSkip := mp.mapRankSkip[rankId]
 	if rankSkip == nil {
 		err = fmt.Errorf("rank %s is not setup", rankCollectName)
-		log.SError(err.Error())
+		log.Errorln(err.Error())
 		return err
 	}
 
@@ -182,7 +182,7 @@ func (mp *MongoPersist) loadFromDB(rankId uint64, rankCollectName string) error 
 		var rankDataDB RankDataDB
 		err = cursor.Decode(&rankDataDB)
 		if err != nil {
-			log.SError(" collect name ", rankCollectName, " Decode is error:", err.Error())
+			log.Errorln(" collect name ", rankCollectName, " Decode is error:", err.Error())
 			return err
 		}
 
@@ -329,7 +329,7 @@ func (mp *MongoPersist) removeToDB(collectName string, keys []uint64) error {
 
 	_, err := s.Collection(mp.dbName, collectName).DeleteMany(ctx, condition)
 	if err != nil {
-		log.SError("MongoPersist DeleteMany fail,collect name is ", collectName)
+		log.Errorln("MongoPersist DeleteMany fail,collect name is ", collectName)
 		return err
 	}
 
@@ -339,7 +339,7 @@ func (mp *MongoPersist) removeToDB(collectName string, keys []uint64) error {
 func (mp *MongoPersist) removeRankData(rankId uint64, keys []uint64) bool {
 	rank := mp.mapRankSkip[rankId]
 	if rank == nil {
-		log.SError("cannot find rankId ", rankId, "config")
+		log.Errorln("cannot find rankId ", rankId, "config")
 		return false
 	}
 
@@ -367,7 +367,7 @@ func (mp *MongoPersist) upsertToDB(collectName string, rankData *RankData) error
 	updateOpts := options.Update().SetUpsert(true)
 	_, err := s.Collection(mp.dbName, collectName).UpdateOne(ctx, condition, update, updateOpts)
 	if err != nil {
-		log.SError("MongoPersist upsertDB fail,collect name is ", collectName)
+		log.Errorln("MongoPersist upsertDB fail,collect name is ", collectName)
 		return err
 	}
 
@@ -378,7 +378,7 @@ func (mp *MongoPersist) upsertRankDataToDB(mapUpsertRankData map[uint64]map[uint
 	for rankId, mapRankData := range mapUpsertRankData {
 		rank, ok := mp.mapRankSkip[rankId]
 		if ok == false {
-			log.SError("cannot find rankId ", rankId, ",config is error")
+			log.Errorln("cannot find rankId ", rankId, ",config is error")
 			delete(mapUpsertRankData, rankId)
 			continue
 		}

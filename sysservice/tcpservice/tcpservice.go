@@ -2,6 +2,10 @@ package tcpservice
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network"
@@ -9,11 +13,9 @@ import (
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/duanhf2012/origin/v2/util/bytespool"
 	"github.com/google/uuid"
-	"strings"
-	"sync"
-	"time"
 )
 
+// deprecated. use netmodule/TcpModule instead.
 type TcpService struct {
 	tcpServer network.TCPServer
 	service.Service

@@ -68,7 +68,7 @@ func (mp *MongoPersist) OnInit() error {
 
 	err = mp.mongo.Start()
 	if err != nil {
-		log.SError("start dbService[", mp.dbName, "], url[", mp.url, "] init error:", err.Error())
+		log.Errorln("start dbService[", mp.dbName, "], url[", mp.url, "] init error:", err.Error())
 		return err
 	}
 
@@ -79,7 +79,7 @@ func (mp *MongoPersist) OnInit() error {
 	IndexKey = append(IndexKey, keys)
 	s := mp.mongo.TakeSession()
 	if err := s.EnsureUniqueIndex(mp.dbName, CustomerCollectName, IndexKey, true, true, true); err != nil {
-		log.SError("EnsureUniqueIndex is fail ", err.Error())
+		log.Errorln("EnsureUniqueIndex is fail ", err.Error())
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (mp *MongoPersist) OnReceiveTopicData(topic string, topicData []TopicData) 
 		err := bson.Unmarshal(topicData[i].RawData, &document)
 		if err != nil {
 			topicData[i].RawData = nil
-			log.SError(topic, " data Unmarshal is fail ", err.Error())
+			log.Errorln(topic, " data Unmarshal is fail ", err.Error())
 			continue
 		}
 
@@ -135,7 +135,7 @@ func (mp *MongoPersist) OnReceiveTopicData(topic string, topicData []TopicData) 
 		byteRet, err := bson.Marshal(document)
 		if err != nil {
 			topicData[i].RawData = nil
-			log.SError(topic, " data Marshal is fail ", err.Error())
+			log.Errorln(topic, " data Marshal is fail ", err.Error())
 			continue
 		}
 		topicData[i].ExtendParam = document
@@ -163,7 +163,7 @@ func (mp *MongoPersist) persistTopicData(collectionName string, topicData []Topi
 
 	_, err := s.Collection(mp.dbName, collectionName).InsertMany(ctx, documents)
 	if err != nil {
-		log.SError("PersistTopicData InsertMany fail,collect name is ", collectionName, " error:", err.Error())
+		log.Errorln("PersistTopicData InsertMany fail,collect name is ", collectionName, " error:", err.Error())
 
 		//失败最大重试数量
 		return retryCount >= mp.retryCount
@@ -226,7 +226,7 @@ func (mp *MongoPersist) findTopicData(topic string, startIndex uint64, limit int
 		}
 
 		if err != nil {
-			log.SError("find collect name ", topic, " is error:", err.Error())
+			log.Errorln("find collect name ", topic, " is error:", err.Error())
 			return nil, false
 		}
 
@@ -291,7 +291,7 @@ func (mp *MongoPersist) FindTopicData(topic string, startIndex uint64, limit int
 			count, err := mp.getCollectCount(topic, strToday)
 			if err != nil {
 				//失败时，重新开始
-				log.SError("getCollectCount ", topic, "_", strToday, " is fail:", err.Error())
+				log.Errorln("getCollectCount ", topic, "_", strToday, " is fail:", err.Error())
 				return nil
 			}
 			//当天没有记录，则不能跳表，有可能当天还有数据
@@ -351,7 +351,7 @@ func (mp *MongoPersist) LoadCustomerIndex(topic string, customerId string) (uint
 	condition := bson.D{{Key: "Customer", Value: customerId}, {Key: "Topic", Value: topic}}
 	cursor, err := s.Collection(mp.dbName, CustomerCollectName).Find(ctx, condition)
 	if err != nil {
-		log.SError("Load topic ", topic, " customer ", customerId, " is fail:", err.Error())
+		log.Errorln("Load topic ", topic, " customer ", customerId, " is fail:", err.Error())
 		return 0, false
 	}
 
@@ -364,7 +364,7 @@ func (mp *MongoPersist) LoadCustomerIndex(topic string, customerId string) (uint
 	defer cancelAll()
 	err = cursor.All(ctxAll, &res)
 	if err != nil {
-		log.SError("Load topic ", topic, " customer ", customerId, " is fail:", err.Error())
+		log.Errorln("Load topic ", topic, " customer ", customerId, " is fail:", err.Error())
 		return 0, false
 	}
 
@@ -384,7 +384,7 @@ func (mp *MongoPersist) GetIndex(topicData *TopicData) uint64 {
 	var document bson.D
 	err := bson.Unmarshal(topicData.RawData, &document)
 	if err != nil {
-		log.SError("GetIndex is fail ", err.Error())
+		log.Errorln("GetIndex is fail ", err.Error())
 		return 0
 	}
 
@@ -416,6 +416,6 @@ func (mp *MongoPersist) PersistIndex(topic string, customerId string, index uint
 	defer cancel()
 	_, err := s.Collection(mp.dbName, CustomerCollectName).UpdateOne(ctx, condition, update, UpdateOptionsOpts...)
 	if err != nil {
-		log.SError("PersistIndex fail :", err.Error())
+		log.Errorln("PersistIndex fail :", err.Error())
 	}
 }

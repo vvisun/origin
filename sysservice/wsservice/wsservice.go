@@ -2,16 +2,18 @@ package wsservice
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/duanhf2012/origin/v2/service"
 	"github.com/google/uuid"
-	"strings"
-	"sync"
 )
 
+// deprecated. use netmodule/WSModule instead.
 type WSService struct {
 	service.Service
 	wsServer network.WSServer
