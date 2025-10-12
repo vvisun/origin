@@ -27,27 +27,27 @@ type Ordered interface {
 }
 
 func ConvertToNumber[DType Number](val interface{}) (DType, error) {
-	switch val.(type) {
+	switch v := val.(type) {
 	case int64:
-		return DType(val.(int64)), nil
+		return DType(v), nil
 	case int:
-		return DType(val.(int)), nil
+		return DType(v), nil
 	case uint:
-		return DType(val.(uint)), nil
+		return DType(v), nil
 	case uint64:
-		return DType(val.(uint64)), nil
+		return DType(v), nil
 	case float32:
-		return DType(val.(float32)), nil
+		return DType(v), nil
 	case float64:
-		return DType(val.(float64)), nil
+		return DType(v), nil
 	case int32:
-		return DType(val.(int32)), nil
+		return DType(v), nil
 	case uint32:
-		return DType(val.(uint32)), nil
+		return DType(v), nil
 	case int16:
-		return DType(val.(int16)), nil
+		return DType(v), nil
 	case uint16:
-		return DType(val.(uint16)), nil
+		return DType(v), nil
 	}
 
 	return 0, errors.New("unsupported type")
