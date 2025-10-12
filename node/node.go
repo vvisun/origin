@@ -3,15 +3,6 @@ package node
 import (
 	"errors"
 	"fmt"
-	"github.com/duanhf2012/origin/v2/cluster"
-	"github.com/duanhf2012/origin/v2/console"
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/duanhf2012/origin/v2/profiler"
-	"github.com/duanhf2012/origin/v2/service"
-	"github.com/duanhf2012/origin/v2/util/buildtime"
-	"github.com/duanhf2012/origin/v2/util/sysprocess"
-	"github.com/duanhf2012/origin/v2/util/timer"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
 	_ "net/http/pprof"
@@ -22,6 +13,16 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/cluster"
+	"github.com/duanhf2012/origin/v2/console"
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/profiler"
+	"github.com/duanhf2012/origin/v2/service"
+	"github.com/duanhf2012/origin/v2/util/buildtime"
+	"github.com/duanhf2012/origin/v2/util/sysprocess"
+	"github.com/duanhf2012/origin/v2/util/timer"
+	"go.uber.org/zap/zapcore"
 )
 
 var sig chan os.Signal
@@ -68,7 +69,7 @@ func notifyAllServiceRetire() {
 
 func usage(val interface{}) error {
 	ret := val.(bool)
-	if ret == false {
+	if !ret {
 		return nil
 	}
 
@@ -191,7 +192,7 @@ func initNode(id string) {
 				}
 			}
 
-			if bSetup == false {
+			if !bSetup {
 				log.Error("Template service not found", log.String("service name", serviceName), log.String("template service name", templateServiceName))
 				os.Exit(1)
 			}
@@ -208,7 +209,7 @@ func initNode(id string) {
 			service.Setup(s)
 		}
 
-		if bSetup == false {
+		if !bSetup {
 			log.Fatal("Service name " + serviceName + " configuration error")
 		}
 	}
@@ -481,7 +482,7 @@ func setLogPath(args interface{}) error {
 	}
 	logPath := strings.TrimSpace(args.(string))
 	dir, err := os.Stat(logPath)
-	if err == nil && dir.IsDir() == false {
+	if err == nil && !dir.IsDir() {
 		return errors.New("Not found dir " + logPath)
 	}
 
@@ -498,7 +499,7 @@ func setLogPath(args interface{}) error {
 
 func setLogSize(args interface{}) error {
 	logSize, ok := args.(int)
-	if ok == false {
+	if !ok {
 		return errors.New("param logsize is error")
 	}
 	if logSize == 0 {
