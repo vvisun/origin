@@ -4,16 +4,26 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/duanhf2012/origin/v2/log"
 	"sync/atomic"
+
+	"github.com/duanhf2012/origin/v2/log"
 )
 
 const defaultMaxTaskChannelNum = 1000000
 
 type IConcurrent interface {
+	//cpuMul 表示cpu的倍数。建议:(1)cpu密集型 使用1  (2)i/o密集型使用2或者更高
 	OpenConcurrentByNumCPU(cpuMul float32)
+	// minGoroutineNum 表示最小协程数
+	// maxGoroutineNum 表示最大协程数
+	// maxTaskChannelNum 表示任务管道的大小
 	OpenConcurrent(minGoroutineNum int32, maxGoroutineNum int32, maxTaskChannelNum int)
+	// 参数一传入队列Id, 同一个队列Id将在协程池中被排队执行
 	AsyncDoByQueue(queueId int64, fn func() bool, cb func(err error))
+	// 参数一的函数在其他协程池中执行完成，将执行完成事件放入服务工作协程，
+	// 参数二的函数在服务协程中执行，是协程安全的。
+	// 函数参数可以某中一个为空。 f为空时cb函数将被延迟执行; cb为空时，f在协程池中执行，但没有在服务协程中回调
+	// 参数一返回false时，cb函数将不会被执行, 为true时，则会被执行
 	AsyncDo(f func() bool, cb func(err error))
 }
 
