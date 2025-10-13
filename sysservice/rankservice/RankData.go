@@ -3,21 +3,21 @@ package rankservice
 import (
 	"github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/util/algorithms/skip"
-	"github.com/duanhf2012/origin/v2/util/sync"
+	"github.com/duanhf2012/origin/v2/util/usync"
 )
 
 var emptyRankData RankData
 
-var RankDataPool = sync.NewPoolEx(make(chan sync.IPoolData, 10240), func() sync.IPoolData {
+var RankDataPool = usync.NewPoolEx(make(chan usync.IPoolData, 10240), func() usync.IPoolData {
 	var newRankData RankData
 	return &newRankData
 })
 
 type RankData struct {
-	Key                  uint64
-	SortData             []int64
-	Data                 []byte
-	ExData               []int64
+	Key      uint64
+	SortData []int64
+	Data     []byte
+	ExData   []int64
 
 	RefreshTimestamp int64 //刷新时间
 	//bRelease bool
@@ -25,7 +25,7 @@ type RankData struct {
 	compareFunc func(other skip.Comparator) int
 }
 
-func NewRankData(isDec bool, data *rpc.RankData,refreshTimestamp int64) *RankData {
+func NewRankData(isDec bool, data *rpc.RankData, refreshTimestamp int64) *RankData {
 	ret := RankDataPool.Get().(*RankData)
 	ret.compareFunc = ret.ascCompare
 	if isDec {
@@ -35,8 +35,8 @@ func NewRankData(isDec bool, data *rpc.RankData,refreshTimestamp int64) *RankDat
 	ret.SortData = data.SortData
 	ret.Data = data.Data
 
-	for _,d := range data.ExData{
-		ret.ExData = append(ret.ExData,d.InitValue+d.IncreaseValue)
+	for _, d := range data.ExData {
+		ret.ExData = append(ret.ExData, d.InitValue+d.IncreaseValue)
 	}
 
 	ret.RefreshTimestamp = refreshTimestamp

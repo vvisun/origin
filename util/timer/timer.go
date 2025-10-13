@@ -2,12 +2,13 @@ package timer
 
 import (
 	"fmt"
-	"github.com/duanhf2012/origin/v2/log"
-	"github.com/duanhf2012/origin/v2/util/sync"
 	"reflect"
 	"runtime"
 	"sync/atomic"
 	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/util/usync"
 )
 
 type ITimer interface {
@@ -52,15 +53,15 @@ type Cron struct {
 	Timer
 }
 
-var timerPool = sync.NewPoolEx(make(chan sync.IPoolData, 102400), func() sync.IPoolData {
+var timerPool = usync.NewPoolEx(make(chan usync.IPoolData, 102400), func() usync.IPoolData {
 	return &Timer{}
 })
 
-var cronPool = sync.NewPoolEx(make(chan sync.IPoolData, 10240), func() sync.IPoolData {
+var cronPool = usync.NewPoolEx(make(chan usync.IPoolData, 10240), func() usync.IPoolData {
 	return &Cron{}
 })
 
-var tickerPool = sync.NewPoolEx(make(chan sync.IPoolData, 102400), func() sync.IPoolData {
+var tickerPool = usync.NewPoolEx(make(chan usync.IPoolData, 102400), func() usync.IPoolData {
 	return &Ticker{}
 })
 

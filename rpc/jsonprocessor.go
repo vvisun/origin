@@ -1,9 +1,10 @@
 package rpc
 
 import (
-	"github.com/duanhf2012/origin/v2/util/sync"
-	jsoniter "github.com/json-iterator/go"
 	"reflect"
+
+	"github.com/duanhf2012/origin/v2/util/usync"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -13,40 +14,40 @@ type JsonProcessor struct {
 
 type JsonRpcRequestData struct {
 	//packhead
-	Seq           uint64             // sequence number chosen by client
+	Seq           uint64 // sequence number chosen by client
 	rpcMethodId   uint32
-	ServiceMethod string   // format: "Service.Method"
-	NoReply       bool           //是否需要返回
+	ServiceMethod string // format: "Service.Method"
+	NoReply       bool   //是否需要返回
 	//packbody
-	InParam      []byte
+	InParam []byte
 }
 
 type JsonRpcResponseData struct {
 	//head
-	Seq           uint64   // sequence number chosen by client
+	Seq uint64 // sequence number chosen by client
 	Err string
 
 	//returns
 	Reply []byte
 }
 
-var rpcJsonResponseDataPool=sync.NewPool(make(chan interface{},10240), func()interface{}{
+var rpcJsonResponseDataPool = usync.NewPool(make(chan interface{}, 10240), func() interface{} {
 	return &JsonRpcResponseData{}
 })
 
-var rpcJsonRequestDataPool =sync.NewPool(make(chan interface{},10240), func()interface{}{
+var rpcJsonRequestDataPool = usync.NewPool(make(chan interface{}, 10240), func() interface{} {
 	return &JsonRpcRequestData{}
 })
 
-func (jsonProcessor *JsonProcessor) Marshal(v interface{}) ([]byte, error){
+func (jsonProcessor *JsonProcessor) Marshal(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (jsonProcessor *JsonProcessor) Unmarshal(data []byte, v interface{}) error{
-	return json.Unmarshal(data,v)
+func (jsonProcessor *JsonProcessor) Unmarshal(data []byte, v interface{}) error {
+	return json.Unmarshal(data, v)
 }
 
-func (jsonProcessor *JsonProcessor) MakeRpcRequest(seq uint64,rpcMethodId uint32,serviceMethod string,noReply bool,inParam []byte) IRpcRequestData{
+func (jsonProcessor *JsonProcessor) MakeRpcRequest(seq uint64, rpcMethodId uint32, serviceMethod string, noReply bool, inParam []byte) IRpcRequestData {
 	jsonRpcRequestData := rpcJsonRequestDataPool.Get().(*JsonRpcRequestData)
 	jsonRpcRequestData.Seq = seq
 	jsonRpcRequestData.rpcMethodId = rpcMethodId
@@ -56,7 +57,7 @@ func (jsonProcessor *JsonProcessor) MakeRpcRequest(seq uint64,rpcMethodId uint32
 	return jsonRpcRequestData
 }
 
-func (jsonProcessor *JsonProcessor) MakeRpcResponse(seq uint64,err RpcError,reply []byte) IRpcResponseData {
+func (jsonProcessor *JsonProcessor) MakeRpcResponse(seq uint64, err RpcError, reply []byte) IRpcResponseData {
 	jsonRpcResponseData := rpcJsonResponseDataPool.Get().(*JsonRpcResponseData)
 	jsonRpcResponseData.Seq = seq
 	jsonRpcResponseData.Err = err.Error()
@@ -65,49 +66,49 @@ func (jsonProcessor *JsonProcessor) MakeRpcResponse(seq uint64,err RpcError,repl
 	return jsonRpcResponseData
 }
 
-func (jsonProcessor *JsonProcessor) ReleaseRpcRequest(rpcRequestData IRpcRequestData){
+func (jsonProcessor *JsonProcessor) ReleaseRpcRequest(rpcRequestData IRpcRequestData) {
 	rpcJsonRequestDataPool.Put(rpcRequestData)
 }
 
-func (jsonProcessor *JsonProcessor) ReleaseRpcResponse(rpcResponseData IRpcResponseData){
+func (jsonProcessor *JsonProcessor) ReleaseRpcResponse(rpcResponseData IRpcResponseData) {
 	rpcJsonResponseDataPool.Put(rpcResponseData)
 }
 
 func (jsonProcessor *JsonProcessor) IsParse(param interface{}) bool {
-	_,err := json.Marshal(param)
-	return err==nil
+	_, err := json.Marshal(param)
+	return err == nil
 }
 
-func (jsonProcessor *JsonProcessor)	GetProcessorType() RpcProcessorType{
+func (jsonProcessor *JsonProcessor) GetProcessorType() RpcProcessorType {
 	return RpcProcessorJson
 }
 
-func (jsonRpcRequestData *JsonRpcRequestData) IsNoReply() bool{
+func (jsonRpcRequestData *JsonRpcRequestData) IsNoReply() bool {
 	return jsonRpcRequestData.NoReply
 }
 
-func (jsonRpcRequestData *JsonRpcRequestData) GetSeq() uint64{
+func (jsonRpcRequestData *JsonRpcRequestData) GetSeq() uint64 {
 	return jsonRpcRequestData.Seq
 }
 
-func (jsonRpcRequestData *JsonRpcRequestData) GetRpcMethodId() uint32{
+func (jsonRpcRequestData *JsonRpcRequestData) GetRpcMethodId() uint32 {
 	return jsonRpcRequestData.rpcMethodId
 }
 
-func (jsonRpcRequestData *JsonRpcRequestData) GetServiceMethod() string{
+func (jsonRpcRequestData *JsonRpcRequestData) GetServiceMethod() string {
 	return jsonRpcRequestData.ServiceMethod
 }
 
-func (jsonRpcRequestData *JsonRpcRequestData) GetInParam() []byte{
+func (jsonRpcRequestData *JsonRpcRequestData) GetInParam() []byte {
 	return jsonRpcRequestData.InParam
 }
 
-func (jsonRpcResponseData *JsonRpcResponseData)	GetSeq() uint64 {
+func (jsonRpcResponseData *JsonRpcResponseData) GetSeq() uint64 {
 	return jsonRpcResponseData.Seq
 }
 
-func (jsonRpcResponseData *JsonRpcResponseData)		GetErr() *RpcError {
-	if jsonRpcResponseData.Err == ""{
+func (jsonRpcResponseData *JsonRpcResponseData) GetErr() *RpcError {
+	if jsonRpcResponseData.Err == "" {
 		return nil
 	}
 
@@ -115,27 +116,22 @@ func (jsonRpcResponseData *JsonRpcResponseData)		GetErr() *RpcError {
 	return &err
 }
 
-func (jsonRpcResponseData *JsonRpcResponseData)		GetReply() []byte{
+func (jsonRpcResponseData *JsonRpcResponseData) GetReply() []byte {
 	return jsonRpcResponseData.Reply
 }
 
-
-func (jsonProcessor *JsonProcessor) Clone(src interface{}) (interface{},error){
+func (jsonProcessor *JsonProcessor) Clone(src interface{}) (interface{}, error) {
 	dstValue := reflect.New(reflect.ValueOf(src).Type().Elem())
-	bytes,err := json.Marshal(src)
+	bytes, err := json.Marshal(src)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	
+
 	dst := dstValue.Interface()
-	err = json.Unmarshal(bytes,dst)
+	err = json.Unmarshal(bytes, dst)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
-	return dst,nil
+	return dst, nil
 }
-
-
-
-

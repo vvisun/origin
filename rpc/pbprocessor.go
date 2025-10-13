@@ -2,18 +2,19 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/duanhf2012/origin/v2/util/sync"
+
+	"github.com/duanhf2012/origin/v2/util/usync"
 	"google.golang.org/protobuf/proto"
 )
 
 type PBProcessor struct {
 }
 
-var rpcPbResponseDataPool = sync.NewPool(make(chan interface{}, 10240), func() interface{} {
+var rpcPbResponseDataPool = usync.NewPool(make(chan interface{}, 10240), func() interface{} {
 	return &PBRpcResponseData{}
 })
 
-var rpcPbRequestDataPool = sync.NewPool(make(chan interface{}, 10240), func() interface{} {
+var rpcPbRequestDataPool = usync.NewPool(make(chan interface{}, 10240), func() interface{} {
 	return &PBRpcRequestData{}
 })
 

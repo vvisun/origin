@@ -1,4 +1,4 @@
-package sync
+package usync
 
 import (
 	sysSync "sync"
