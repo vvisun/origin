@@ -22,9 +22,16 @@ type Port[T iPortType] struct {
 }
 
 func (em *Port[T]) Clone() IPort {
-	return &Port[T]{
-		PortVal: em.PortVal,
+	arrayData, ok := any(em.PortVal).(Port_Array)
+	if !ok {
+		return &Port[T]{
+			PortVal: em.PortVal,
+		}
 	}
+
+	portArray := Port[Port_Array]{}
+	portArray.PortVal = append(portArray.PortVal, arrayData...)
+	return &portArray
 }
 
 func (em *Port[T]) Reset() {
@@ -155,6 +162,15 @@ func (em *Port[T]) AppendArrayValStr(val Port_Str) bool {
 	return false
 }
 
+func (em *Port[T]) AppendArrayData(val ArrayData) bool {
+	if t, ok := any(&em.PortVal).(*Port_Array); ok {
+		*t = append(*t, val)
+		return true
+	}
+	
+	return false
+}
+
 func (em *Port[T]) GetArrayLen() Port_Int {
 	if t, ok := any(&em.PortVal).(*Port_Array); ok {
 		return Port_Int(len(*t))
@@ -197,7 +213,7 @@ func (em *Port[T]) convertInt64(v any) (int64, bool) {
 
 func (em *Port[T]) setAnyVale(v any) error {
 	switch v.(type) {
-	case int, int64:
+	case int8,int16,int32,int, int64,uint8,uint16,uint32,uint, uint64:
 		val, ok := em.convertInt64(v)
 		if !ok {
 			return fmt.Errorf("port type is %T, but value is %v", em.PortVal, v)
@@ -313,6 +329,11 @@ func (em *Port[T]) setAnyVale(v any) error {
 		arr := v.([]string)
 		for _, val := range arr {
 			em.AppendArrayValStr(val)
+		}
+	case Port_Array:
+		arr := v.(Port_Array)
+		for _, val := range arr {
+			em.AppendArrayValInt(val.IntVal)
 		}
 	}
 

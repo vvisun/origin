@@ -2,20 +2,23 @@ package blueprint
 
 import (
 	"fmt"
-	"github.com/goccy/go-json"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/goccy/go-json"
 )
 
 type GraphPool struct {
-	mapGraphs map[string]*baseGraph
-	execPool  *ExecPool
+	mapGraphs       map[string]*baseGraph
+	execPool        *ExecPool
+	blueprintModule IBlueprintModule
 }
 
-func (gp *GraphPool) Load(execPool *ExecPool, graphFilePath string) error {
+func (gp *GraphPool) Load(execPool *ExecPool, graphFilePath string, blueprintModule IBlueprintModule) error {
 	gp.execPool = execPool
 	gp.mapGraphs = make(map[string]*baseGraph, 1024)
+	gp.blueprintModule = blueprintModule
 
 	// 检查路径是否存在
 	stat, err := os.Stat(graphFilePath)
@@ -49,7 +52,16 @@ func (gp *GraphPool) Load(execPool *ExecPool, graphFilePath string) error {
 	})
 }
 
-func (gp *GraphPool) Create(graphName string) IGraph {
+func (gp *GraphPool) GetBaseGraph(graphName string) *baseGraph {
+	gr, ok := gp.mapGraphs[graphName]
+	if !ok {
+		return nil
+	}
+
+	return gr
+}
+
+func (gp *GraphPool) Create(graphName string, graphID int64) IGraph {
 	gr, ok := gp.mapGraphs[graphName]
 	if !ok {
 		return nil
@@ -57,8 +69,10 @@ func (gp *GraphPool) Create(graphName string) IGraph {
 
 	var graph Graph
 	graph.baseGraph = gr
+	graph.graphID = graphID
+	graph.graphFileName = graphName
 	graph.context = make(map[string]*ExecContext, 4)
-
+	graph.IBlueprintModule = gp.blueprintModule
 	return &graph
 }
 
@@ -68,21 +82,25 @@ func (gp *GraphPool) processJSONFile(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open file %s: %v", filePath, err)
 	}
+
 	defer func() {
-		if err := file.Close(); err != nil {
+		if err = file.Close(); err != nil {
 			fmt.Printf("关闭文件 %s 时出错: %v\n", filePath, err)
 		}
 	}()
 
 	fileName := filepath.Base(filePath)
-	ext := filepath.Ext(fileName)             // 获取".html"
+	ext := filepath.Ext(fileName)             // 获取".vgf"
 	name := strings.TrimSuffix(fileName, ext) // 获取"name"
+
+	// 解析文件
 	var gConfig graphConfig
 	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&gConfig); err != nil {
+	if err = decoder.Decode(&gConfig); err != nil {
 		return fmt.Errorf("failed to decode JSON from file %s: %v", filePath, err)
 	}
 
+	// 预处理蓝图
 	return gp.prepareGraph(name, &gConfig)
 }
 
@@ -133,8 +151,6 @@ func (gp *GraphPool) genVarExec(nodeCfg *nodeConfig, graphConfig *graphConfig) (
 	}
 
 	e := gp.execPool.GetExec(nodeName)
-	e.(IExecNode).setVariableName(varName)
-
 	return e, varName
 }
 
@@ -170,7 +186,7 @@ func (gp *GraphPool) genAllNode(graphConfig *graphConfig) (map[string]*execNode,
 
 func (gp *GraphPool) prepareOneNode(mapNodeExec map[string]*execNode, nodeExec *execNode, graphConfig *graphConfig, recursion *int) error {
 	*recursion++
-	if *recursion > 100 {
+	if *recursion > 256 {
 		return fmt.Errorf("recursion too deep")
 	}
 
@@ -203,7 +219,7 @@ func (gp *GraphPool) prepareOneNode(mapNodeExec map[string]*execNode, nodeExec *
 func (gp *GraphPool) findOutNextNode(graphConfig *graphConfig, mapNodeExec map[string]*execNode, sourceNodeID string, sourcePortIdx int) *execNode {
 	// 找到出口的NodeID
 	for _, edge := range graphConfig.Edges {
-		if edge.SourceNodeID == sourceNodeID && edge.SourcePortIndex == sourcePortIdx {
+		if edge.SourceNodeID == sourceNodeID && edge.SourcePortId == sourcePortIdx {
 			return mapNodeExec[edge.DesNodeId]
 		}
 	}
@@ -237,22 +253,21 @@ func (gp *GraphPool) prepareOneEntrance(graphName string, entranceID int64, node
 		return err
 	}
 
-	var gr baseGraph
-	gr.entrance = make(map[int64]*execNode, 16)
-	gr.entrance[entranceID] = nodeExec
-
-	if _, ok := gp.mapGraphs[graphName]; ok {
-		return fmt.Errorf("baseGraph %s already exists", graphName)
+	gr, ok := gp.mapGraphs[graphName]
+	if !ok {
+		gr = &baseGraph{}
+		gr.entrance = make(map[int64]*execNode, 16)
+		gp.mapGraphs[graphName] = gr
 	}
 
-	gp.mapGraphs[graphName] = &gr
+	gr.entrance[entranceID] = nodeExec
 
 	return nil
 }
 
 func (gp *GraphPool) findPreInPortNode(mapNodes map[string]*execNode, nodeExec *execNode, graphConfig *graphConfig, portIdx int) *prePortNode {
 	for _, edge := range graphConfig.Edges {
-		if edge.DesNodeId == nodeExec.Id && edge.DesPortIndex == portIdx {
+		if edge.DesNodeId == nodeExec.Id && edge.DesPortId == portIdx {
 			srcNode := mapNodes[edge.SourceNodeID]
 			if srcNode == nil {
 				return nil
@@ -260,7 +275,7 @@ func (gp *GraphPool) findPreInPortNode(mapNodes map[string]*execNode, nodeExec *
 
 			var preNode prePortNode
 			preNode.node = srcNode
-			preNode.outPortIndex = edge.SourcePortIndex
+			preNode.outPortId = edge.SourcePortId
 
 			return &preNode
 		}

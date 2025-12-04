@@ -17,13 +17,16 @@ type WSServer struct {
 	MaxConnNum      int
 	PendingWriteNum int
 	MaxMsgLen       uint32
-	HTTPTimeout     time.Duration
 	CertFile        string
 	KeyFile         string
 	NewAgent        func(*WSConn) Agent
 	ln              net.Listener
 	handler         *WSHandler
 	messageType     int
+
+	HandshakeTimeout time.Duration
+	ReadTimeout      time.Duration
+	WriteTimeout     time.Duration
 }
 
 type WSHandler struct {
@@ -74,14 +77,14 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	handler.conns[conn] = struct{}{}
 	handler.mutexConns.Unlock()
-	c,ok:=conn.NetConn().(*net.TCPConn)
+	c, ok := conn.NetConn().(*net.TCPConn)
 	if !ok {
-		tlsConn,ok := conn.NetConn().(*tls.Conn)
+		tlsConn, ok := conn.NetConn().(*tls.Conn)
 		if !ok {
 			log.Error("conn error")
 			return
 		}
-		c,ok = tlsConn.NetConn().(*net.TCPConn)
+		c, ok = tlsConn.NetConn().(*net.TCPConn)
 		if !ok {
 			log.Error("conn error")
 			return
@@ -128,10 +131,19 @@ func (server *WSServer) Start() error {
 		server.MaxMsgLen = 4096
 		log.Info("invalid MaxMsgLen", log.Uint32("reset", server.MaxMsgLen))
 	}
-	if server.HTTPTimeout <= 0 {
-		server.HTTPTimeout = 10 * time.Second
-		log.Info("invalid HTTPTimeout", log.Duration("reset", server.HTTPTimeout))
+	if server.HandshakeTimeout <= 0 {
+		server.HandshakeTimeout = 15 * time.Second
+		log.Info("invalid HandshakeTimeout", log.Duration("reset", server.HandshakeTimeout))
 	}
+	if server.ReadTimeout <= 0 {
+		server.ReadTimeout = 15 * time.Second
+		log.Info("invalid ReadTimeout", log.Duration("reset", server.ReadTimeout))
+	}
+	if server.WriteTimeout <= 0 {
+		server.WriteTimeout = 15 * time.Second
+		log.Info("invalid WriteTimeout", log.Duration("reset", server.WriteTimeout))
+	}
+
 	if server.NewAgent == nil {
 		log.Error("NewAgent must not be nil")
 		return errors.New("NewAgent must not be nil")
@@ -160,7 +172,7 @@ func (server *WSServer) Start() error {
 		conns:           make(WebsocketConnSet),
 		messageType:     server.messageType,
 		upgrader: websocket.Upgrader{
-			HandshakeTimeout: server.HTTPTimeout,
+			HandshakeTimeout: server.HandshakeTimeout,
 			CheckOrigin:      func(_ *http.Request) bool { return true },
 		},
 	}
@@ -168,8 +180,8 @@ func (server *WSServer) Start() error {
 	httpServer := &http.Server{
 		Addr:           server.Addr,
 		Handler:        server.handler,
-		ReadTimeout:    server.HTTPTimeout,
-		WriteTimeout:   server.HTTPTimeout,
+		ReadTimeout:    server.ReadTimeout,
+		WriteTimeout:   server.WriteTimeout,
 		MaxHeaderBytes: 1024,
 	}
 

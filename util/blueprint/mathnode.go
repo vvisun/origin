@@ -5,14 +5,6 @@ import (
 	"math/rand"
 )
 
-func init() {
-	RegExecNode(&AddInt{})
-	RegExecNode(&SubInt{})
-	RegExecNode(&MulInt{})
-	RegExecNode(&DivInt{})
-	RegExecNode(&ModInt{})
-	RegExecNode(&RandNumber{})
-}
 
 // AddInt 加(int)
 type AddInt struct {

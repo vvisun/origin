@@ -12,13 +12,11 @@ const globalVariablesPrefix = "g_"
 type GetVariablesNode struct {
 	BaseExecNode
 	nodeName string
-	varName  string
 }
 
 type SetVariablesNode struct {
 	BaseExecNode
 	nodeName string
-	varName  string
 }
 
 func (g *GetVariablesNode) GetName() string {
@@ -27,14 +25,14 @@ func (g *GetVariablesNode) GetName() string {
 
 func (g *GetVariablesNode) Exec() (int, error) {
 	var port IPort
-	if strings.HasPrefix(g.varName, globalVariablesPrefix) {
-		port = g.gr.globalVariables[g.varName]
+	if strings.HasPrefix(g.GetVariableName(), globalVariablesPrefix) {
+		port = g.gr.globalVariables[g.GetVariableName()]
 	} else {
-		port = g.gr.variables[g.varName]
+		port = g.gr.variables[g.GetVariableName()]
 	}
 
 	if port == nil {
-		return -1, fmt.Errorf("variable %s not found,node name %s", g.varName, g.nodeName)
+		return -1, fmt.Errorf("variable %s not found,node name %s", g.GetVariableName(), g.nodeName)
 	}
 
 	if !g.SetOutPort(0, port) {
@@ -44,10 +42,7 @@ func (g *GetVariablesNode) Exec() (int, error) {
 	return 0, nil
 }
 
-func (g *GetVariablesNode) setVariableName(name string) bool {
-	g.varName = name
-	return true
-}
+
 
 func (g *SetVariablesNode) GetName() string {
 	return g.nodeName
@@ -60,11 +55,10 @@ func (g *SetVariablesNode) Exec() (int, error) {
 	}
 
 	varPort := port.Clone()
-	varPort.SetValue(port)
-	if strings.HasPrefix(g.varName, globalVariablesPrefix) {
-		g.gr.globalVariables[g.varName] = varPort
+	if strings.HasPrefix(g.GetVariableName(), globalVariablesPrefix) {
+		g.gr.globalVariables[g.GetVariableName()] = varPort
 	} else {
-		g.gr.variables[g.varName] = varPort
+		g.gr.variables[g.GetVariableName()] = varPort
 	}
 
 	if !g.SetOutPort(1, varPort) {
@@ -74,7 +68,3 @@ func (g *SetVariablesNode) Exec() (int, error) {
 	return 0, nil
 }
 
-func (g *SetVariablesNode) setVariableName(name string) bool {
-	g.varName = name
-	return true
-}

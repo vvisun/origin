@@ -2,13 +2,15 @@ package wsmodule
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/network"
 	"github.com/duanhf2012/origin/v2/network/processor"
 	"github.com/duanhf2012/origin/v2/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"sync"
 )
 
 type WSModule struct {
@@ -36,6 +38,10 @@ type WSCfg struct {
 	LittleEndian    bool //是否小端序
 	KeyFile 		string
 	CertFile 		string
+
+	HandshakeTimeoutSecond time.Duration
+	ReadTimeoutSecond time.Duration
+	WriteTimeoutSecond time.Duration
 }
 
 type WSPackType int8
@@ -63,6 +69,9 @@ func (ws *WSModule) OnInit() error {
 	ws.WSServer.PendingWriteNum = ws.wsCfg.PendingWriteNum
 	ws.WSServer.MaxMsgLen = ws.wsCfg.MaxMsgLen
 	ws.WSServer.Addr = ws.wsCfg.ListenAddr
+	ws.WSServer.HandshakeTimeout = ws.wsCfg.HandshakeTimeoutSecond*time.Second
+	ws.WSServer.ReadTimeout = ws.wsCfg.ReadTimeoutSecond*time.Second
+	ws.WSServer.WriteTimeout = ws.wsCfg.WriteTimeoutSecond*time.Second
 
 	if ws.wsCfg.KeyFile != "" && ws.wsCfg.CertFile != "" {
 		ws.WSServer.KeyFile = ws.wsCfg.KeyFile

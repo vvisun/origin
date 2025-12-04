@@ -6,21 +6,21 @@ import (
 	"time"
 )
 
-func SetupTimer(timer ITimer) ITimer{
+func SetupTimer(timer ITimer) ITimer {
 	if timer.IsOpen() == true {
 		return nil
 	}
 
 	timer.Open(true)
 	timerHeapLock.Lock() // 使用锁规避竞争条件
-	heap.Push(&timerHeap,timer)
+	heap.Push(&timerHeap, timer)
 	timerHeapLock.Unlock()
 	return timer
 }
 
-func NewTimer(d time.Duration) *Timer{
-	c := make(chan ITimer,1)
-	timer := newTimer(d,c,nil,"")
+func NewTimer(d time.Duration) *Timer {
+	c := make(chan ITimer, 1)
+	timer := newTimer(d, c, nil, "")
 	SetupTimer(timer)
 
 	return timer
@@ -43,7 +43,7 @@ func (h *_TimerHeap) Less(i, j int) bool {
 }
 
 func (h *_TimerHeap) Swap(i, j int) {
-	h.timers[i],h.timers[j] = h.timers[j],h.timers[i]
+	h.timers[i], h.timers[j] = h.timers[j], h.timers[i]
 }
 
 func (h *_TimerHeap) Push(x interface{}) {
@@ -62,16 +62,16 @@ var (
 	timeOffset    time.Duration
 )
 
-func StartTimer(minTimerInterval time.Duration,maxTimerNum int){
-	timerHeap.timers = make([]ITimer,0,maxTimerNum)
+func StartTimer(minTimerInterval time.Duration, maxTimerNum int) {
+	timerHeap.timers = make([]ITimer, 0, maxTimerNum)
 	heap.Init(&timerHeap) // 初始化定时器heap
 
-	go  tickRoutine(minTimerInterval)
+	go tickRoutine(minTimerInterval)
 }
 
-func tickRoutine(minTimerInterval time.Duration){
+func tickRoutine(minTimerInterval time.Duration) {
 	var bContinue bool
-	for{
+	for {
 		bContinue = tick()
 		if bContinue == false {
 			time.Sleep(minTimerInterval)
@@ -79,7 +79,7 @@ func tickRoutine(minTimerInterval time.Duration){
 	}
 }
 
-func tick() bool{
+func tick() bool {
 	now := Now()
 	timerHeapLock.Lock()
 	if timerHeap.Len() <= 0 { // 没有任何定时器，立刻返回
@@ -100,7 +100,7 @@ func tick() bool{
 	return true
 }
 
-func Now() time.Time{
+func Now() time.Time {
 	if timeOffset == 0 {
 		return time.Now()
 	}
@@ -108,4 +108,12 @@ func Now() time.Time{
 	return time.Now().Add(timeOffset)
 }
 
+// SetTimeOffset 设置时间偏移量
+func SetTimeOffset(offset time.Duration) {
+	timeOffset = offset
+}
 
+// AddTimeOffset 添加时间偏移量
+func AddTimeOffset(addOffset time.Duration) {
+	timeOffset += addOffset
+}

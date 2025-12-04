@@ -3,13 +3,14 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+
 	"github.com/duanhf2012/origin/v2/event"
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/rpc"
 	"github.com/duanhf2012/origin/v2/service"
-	"reflect"
-	"strings"
-	"sync"
 )
 
 var configDir = "./config/"

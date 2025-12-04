@@ -12,7 +12,7 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/gomodule/redigo v1.8.8
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats.go v1.34.1
 	github.com/pierrec/lz4/v4 v4.1.21

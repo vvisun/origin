@@ -2,11 +2,12 @@ package blueprint
 
 import (
 	"fmt"
+	"github.com/duanhf2012/origin/v2/log"
 )
 
 type prePortNode struct {
-	node         *execNode // 上个结点
-	outPortIndex int       // 对应上一个结点的OutPort索引
+	node      *execNode // 上个结点
+	outPortId int       // 对应上一个结点的OutPortId
 }
 
 type execNode struct {
@@ -102,20 +103,6 @@ func (en *execNode) exec(gr *Graph) (int, error) {
 		return -1, err
 	}
 
-	//defer func() {
-	inPort, outPort := node.GetPorts()
-	debugString := "inPort:"
-	for i := 0; i < len(inPort); i++ {
-		debugString += fmt.Sprintf("%+v,", inPort[i])
-	}
-	debugString += "   outPort:"
-	for i := 0; i < len(outPort); i++ {
-		debugString += fmt.Sprintf("%+v,", outPort[i])
-	}
-
-	fmt.Printf("exec node %s,%s\n", en.execNode.GetName(), debugString)
-	//}()
-
 	return e.Exec()
 }
 
@@ -142,9 +129,9 @@ func (en *execNode) doSetInPort(gr *Graph, index int, inPort IPort) error {
 
 	// 判断上一个结点是否已经执行过
 	if _, ok := gr.context[preNode.node.Id]; ok {
-		outPort := gr.GetNodeOutPortValue(preNode.node.Id, preNode.outPortIndex)
+		outPort := gr.GetNodeOutPortValue(preNode.node.Id, preNode.outPortId)
 		if outPort == nil {
-			return fmt.Errorf("pre node %s out port index %d not found", preNode.node.Id, preNode.outPortIndex)
+			return fmt.Errorf("pre node %s out port index %d not found", preNode.node.Id, preNode.outPortId)
 		}
 
 		inPort.SetValue(outPort)
@@ -155,6 +142,10 @@ func (en *execNode) doSetInPort(gr *Graph, index int, inPort IPort) error {
 }
 
 func (en *execNode) Do(gr *Graph, outPortArgs ...any) error {
+	if IsDebug {
+		log.Debug("Start ExecNode", log.String("Name",en.execNode.GetName()))
+	}
+
 	// 重新初始化上下文
 	inPorts, outPorts := en.execNode.CloneInOutPort()
 	gr.context[en.Id] = &ExecContext{
@@ -164,7 +155,7 @@ func (en *execNode) Do(gr *Graph, outPortArgs ...any) error {
 
 	startOutIdx := en.execNode.GetOutPortParamStartIndex()
 	for i := 0; i < len(outPortArgs); i++ {
-		if i >= len(outPorts) {
+		if i+startOutIdx >= len(outPorts) {
 			return fmt.Errorf("args %d not found in node %s", i, en.execNode.GetName())
 		}
 
@@ -175,12 +166,12 @@ func (en *execNode) Do(gr *Graph, outPortArgs ...any) error {
 
 	// 处理InPort结点值
 	var err error
-	for index := range inPorts {
-		if en.execNode.IsInPortExec(index) {
+	for portId := range inPorts {
+		if en.execNode.IsInPortExec(portId) {
 			continue
 		}
 
-		err = en.doSetInPort(gr, index, inPorts[index])
+		err = en.doSetInPort(gr, portId, inPorts[portId])
 		if err != nil {
 			return err
 		}
@@ -192,6 +183,10 @@ func (en *execNode) Do(gr *Graph, outPortArgs ...any) error {
 	nextIndex, err := en.exec(gr)
 	if err != nil {
 		return err
+	}
+
+	if IsDebug {
+		log.Debug("End ExecNode", log.String("Name",en.execNode.GetName()),log.Any("InPort",inPorts ),log.Any("OutPort",outPorts))
 	}
 
 	if nextIndex == -1 || en.nextNode == nil {

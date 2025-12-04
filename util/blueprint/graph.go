@@ -2,12 +2,30 @@ package blueprint
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/duanhf2012/origin/v2/log"
+	"github.com/duanhf2012/origin/v2/service"
 	"github.com/goccy/go-json"
 )
 
+const ReturnVarial = "g_Return"
+
+var IsDebug = false
+
 type IGraph interface {
-	Do(entranceID int64, args ...any) error
+	Do(entranceID int64, args ...any) (Port_Array, error)
 	Release()
+	GetGraphFileName() string
+	HotReload(newBaseGraph *baseGraph)
+}
+
+type IBlueprintModule interface {
+	SafeAfterFunc(timerId *uint64, d time.Duration, AdditionData interface{}, cb func(uint64, interface{}))
+	TriggerEvent(graphID int64, eventID int64, args ...any) error
+	CancelTimerId(graphID int64, timerId *uint64) bool
+	GetGameService() service.IService
+	GetBattleService() service.IService
 }
 
 type baseGraph struct {
@@ -15,15 +33,20 @@ type baseGraph struct {
 }
 
 type Graph struct {
+	graphFileName string
+	graphID       int64
 	*baseGraph
 	graphContext
+	IBlueprintModule
+	mapTimerID map[uint64]struct{}
 }
 
 type graphContext struct {
 	context         map[string]*ExecContext // 上下文
 	variables       map[string]IPort        // 变量
-	globalVariables map[string]IPort        // 全局变量
+	globalVariables map[string]IPort        // 全局变量,g_Return,为执行返回值
 }
+
 type nodeConfig struct {
 	Id     string `json:"id"`
 	Class  string `json:"class"`
@@ -37,12 +60,12 @@ type edgeConfig struct {
 	SourceNodeID string `json:"source_node_id"`
 	DesNodeId    string `json:"des_node_id"`
 
-	SourcePortIndex int `json:"source_port_index"`
-	DesPortIndex    int `json:"des_port_index"`
+	SourcePortId int `json:"source_port_id"`
+	DesPortId    int `json:"des_port_id"`
 }
 
 type MultiTypeValue struct {
-	Value interface{}
+	Value any
 }
 
 // 实现json.Unmarshaler接口，自定义解码逻辑
@@ -75,6 +98,11 @@ func (v *MultiTypeValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
+	var arrayVal []any
+	if err := json.Unmarshal(data, &arrayVal); err == nil {
+		v.Value = arrayVal
+		return nil
+	}
 	// 如果都失败，返回错误
 	return fmt.Errorf("cannot unmarshal JSON value: %s", string(data))
 }
@@ -114,18 +142,50 @@ func (gc *graphConfig) GetNodeByID(nodeID string) *nodeConfig {
 	return nil
 }
 
-func (gr *Graph) Do(entranceID int64, args ...any) error {
+func (gr *Graph) GetAndCreateReturnPort() IPort {
+	p, ok := gr.globalVariables[ReturnVarial]
+	if ok {
+		return p
+	}
+
+	p = NewPortArray()
+	gr.globalVariables[ReturnVarial] = p
+	return p
+}
+
+func (gr *Graph) Do(entranceID int64, args ...any) (Port_Array, error) {
+	if IsDebug {
+		log.Debug("Graph Do", log.String("graphName", gr.graphFileName), log.Int64("graphID", gr.graphID), log.Int64("entranceID", entranceID))
+	}
+
 	entranceNode := gr.entrance[entranceID]
 	if entranceNode == nil {
-		return fmt.Errorf("entranceID:%d not found", entranceID)
+		return nil, fmt.Errorf("entranceID:%d not found", entranceID)
 	}
 
 	gr.variables = map[string]IPort{}
+	gr.context = map[string]*ExecContext{}
+
 	if gr.globalVariables == nil {
 		gr.globalVariables = map[string]IPort{}
 	}
 
-	return entranceNode.Do(gr, args...)
+	err := entranceNode.Do(gr, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	if gr.globalVariables != nil {
+		port := gr.globalVariables[ReturnVarial]
+		if port != nil {
+			array, ok := port.GetArray()
+			if ok {
+				return array, nil
+			}
+		}
+	}
+
+	return nil, nil
 }
 
 func (gr *Graph) GetNodeInPortValue(nodeID string, inPortIndex int) IPort {
@@ -151,7 +211,19 @@ func (gr *Graph) GetNodeOutPortValue(nodeID string, outPortIndex int) IPort {
 
 func (gr *Graph) Release() {
 	// 有定时器关闭定时器
+	for timerID := range gr.mapTimerID {
+		gr.CancelTimerId(gr.graphID, &timerID)
+	}
+	gr.mapTimerID = nil
 
 	// 清理掉所有数据
 	*gr = Graph{}
+}
+
+func (gr *Graph) HotReload(newBaseGraph *baseGraph) {
+	gr.baseGraph = newBaseGraph
+}
+
+func (gr *Graph) GetGraphFileName() string{
+	return gr.graphFileName
 }
