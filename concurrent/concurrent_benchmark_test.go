@@ -202,28 +202,40 @@ func BenchmarkCallbackProcessing(b *testing.B) {
 	defer c.Close()
 
 	var wg sync.WaitGroup
+	var completed int32
 	wg.Add(b.N)
+
+	// 处理回调 - 确保处理所有回调
+	done := make(chan bool)
+	go func() {
+		defer close(done)
+		timeout := time.After(30 * time.Second)
+		for atomic.LoadInt32(&completed) < int32(b.N) {
+			select {
+			case cb := <-c.GetCallBackChannel():
+				c.DoCallback(cb)
+			case <-timeout:
+				return
+			}
+		}
+	}()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		c.AsyncDo(func() bool {
 			return true
 		}, func(err error) {
+			atomic.AddInt32(&completed, 1)
 			wg.Done()
 		})
 	}
 
-	// 处理回调
-	go func() {
-		for {
-			select {
-			case cb := <-c.GetCallBackChannel():
-				c.DoCallback(cb)
-			case <-time.After(1 * time.Second):
-				return
-			}
-		}
-	}()
+	// 等待所有回调完成
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		b.Fatal("timeout waiting for callbacks")
+	}
 
 	wg.Wait()
 }
