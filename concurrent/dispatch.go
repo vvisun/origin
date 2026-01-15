@@ -171,11 +171,26 @@ func (d *dispatch) processTask(t *task) {
 }
 
 func (d *dispatch) processIdle() {
+	// 改进：使用带超时的 channel 发送，避免无限阻塞
+	// 如果 workerQueue 满了（所有 worker 都在执行任务），超时后不减少计数
+	// worker 会在任务完成后自然退出，下次空闲检测时会再次尝试回收
+	timeout := time.NewTimer(10 * time.Millisecond)
+	defer timeout.Stop()
+
 	select {
 	case d.workerQueue <- task{}:
-		// 修复：使用原子操作减少 workerNum
+		// 成功发送退出信号，减少 worker 计数
 		atomic.AddInt32(&d.workerNum, -1)
-	default:
+	case <-timeout.C:
+		// 超时：说明所有 worker 都在执行任务，无法接收退出信号
+		// 这种情况下，worker 会在任务完成后自然退出
+		// 不减少计数，等待下次空闲检测时再次尝试
+		currentNum := atomic.LoadInt32(&d.workerNum)
+		minNum := atomic.LoadInt32(&d.minConcurrentNum)
+		if currentNum > minNum {
+			// 记录调试信息（可选）
+			// log.Debug("worker queue is full, worker will exit after task completion")
+		}
 	}
 }
 
