@@ -2,10 +2,10 @@ package concurrent
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"errors"
 	"fmt"
-
 
 	"github.com/duanhf2012/origin/v2/log"
 )
@@ -26,7 +26,8 @@ func (t *task) isExistTask() bool {
 
 func (w *worker) start(waitGroup *sync.WaitGroup, t *task, d *dispatch) {
 	w.dispatch = d
-	d.workerNum += 1
+	// 修复：使用原子操作增加 workerNum
+	atomic.AddInt32(&d.workerNum, 1)
 	waitGroup.Add(1)
 	go w.run(waitGroup, *t)
 }

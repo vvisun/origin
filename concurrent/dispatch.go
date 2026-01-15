@@ -7,8 +7,8 @@ import (
 
 	"fmt"
 
-
 	"context"
+
 	"github.com/duanhf2012/origin/v2/log"
 	"github.com/duanhf2012/origin/v2/util/queue"
 )
@@ -24,11 +24,12 @@ type dispatch struct {
 	queueIdChannel chan int64
 	workerQueue    chan task
 	tasks          chan task
-	idle           bool
-	workerNum      int32
+	idle           int32 // 使用原子操作保护
+	workerNum      int32 // 使用原子操作保护
 	cbChannel      chan func(error)
 
 	mapTaskQueueSession map[int64]*queue.Deque[task]
+	queueSessionMu      sync.RWMutex // 保护 mapTaskQueueSession 的并发访问
 
 	waitWorker   sync.WaitGroup
 	waitDispatch sync.WaitGroup
@@ -46,6 +47,8 @@ func (d *dispatch) open(minGoroutineNum int32, maxGoroutineNum int32, tasks chan
 	d.cbChannel = cbChannel
 	d.queueIdChannel = make(chan int64, cap(tasks))
 	d.cancelContext, d.cancel = context.WithCancel(context.Background())
+	// 初始化 idle 为 true（使用原子操作）
+	atomic.StoreInt32(&d.idle, 1)
 	d.waitDispatch.Add(1)
 	go d.run()
 }
@@ -69,16 +72,19 @@ func (d *dispatch) run() {
 				d.processQueueEvent(queueId)
 			case <-timeout.C:
 				d.processTimer()
+				// 修复：重置定时器
+				timeout.Reset(time.Duration(atomic.LoadInt64(&idleTimeout)))
 			case <-d.cancelContext.Done():
 				atomic.StoreInt64(&idleTimeout, int64(time.Millisecond*5))
 				timeout.Reset(time.Duration(atomic.LoadInt64(&idleTimeout)))
-				for i := int32(0); i < d.workerNum; i++ {
+				workerNum := atomic.LoadInt32(&d.workerNum)
+				for i := int32(0); i < workerNum; i++ {
 					d.processIdle()
 				}
 			}
 		}
 
-		if atomic.LoadInt32(&d.minConcurrentNum) == -1 && d.workerNum == 0 {
+		if atomic.LoadInt32(&d.minConcurrentNum) == -1 && atomic.LoadInt32(&d.workerNum) == 0 {
 			d.waitWorker.Wait()
 			d.cbChannel <- nil
 			return
@@ -87,23 +93,31 @@ func (d *dispatch) run() {
 }
 
 func (d *dispatch) processTimer() {
-	if d.idle == true && d.workerNum > atomic.LoadInt32(&d.minConcurrentNum) {
+	// 使用原子操作读取 idle 和 workerNum
+	if atomic.LoadInt32(&d.idle) == 1 && atomic.LoadInt32(&d.workerNum) > atomic.LoadInt32(&d.minConcurrentNum) {
 		d.processIdle()
 	}
 
-	d.idle = true
+	atomic.StoreInt32(&d.idle, 1)
 }
 
 func (d *dispatch) processQueueEvent(queueId int64) {
-	d.idle = false
+	atomic.StoreInt32(&d.idle, 0)
 
+	d.queueSessionMu.RLock()
 	queueSession := d.mapTaskQueueSession[queueId]
+	d.queueSessionMu.RUnlock()
+
 	if queueSession == nil {
 		return
 	}
 
 	queueSession.PopFront()
 	if queueSession.Len() == 0 {
+		// 修复：清理空队列，防止内存泄漏
+		d.queueSessionMu.Lock()
+		delete(d.mapTaskQueueSession, queueId)
+		d.queueSessionMu.Unlock()
 		return
 	}
 
@@ -116,7 +130,8 @@ func (d *dispatch) executeTask(t *task) {
 	case d.workerQueue <- *t:
 		return
 	default:
-		if d.workerNum < d.maxConcurrentNum {
+		// 使用原子操作读取 workerNum
+		if atomic.LoadInt32(&d.workerNum) < d.maxConcurrentNum {
 			var work worker
 			work.start(&d.waitWorker, t, d)
 			return
@@ -127,22 +142,27 @@ func (d *dispatch) executeTask(t *task) {
 }
 
 func (d *dispatch) processTask(t *task) {
-	d.idle = false
+	atomic.StoreInt32(&d.idle, 0)
 
 	//处理有排队任务
 	if t.queueId != 0 {
+		d.queueSessionMu.Lock()
 		queueSession := d.mapTaskQueueSession[t.queueId]
 		if queueSession == nil {
 			queueSession = &queue.Deque[task]{}
 			d.mapTaskQueueSession[t.queueId] = queueSession
 		}
+		queueLen := queueSession.Len()
+		d.queueSessionMu.Unlock()
 
 		//没有正在执行的任务，则直接执行
-		if queueSession.Len() == 0 {
+		if queueLen == 0 {
 			d.executeTask(t)
 		}
 
+		d.queueSessionMu.Lock()
 		queueSession.PushBack(*t)
+		d.queueSessionMu.Unlock()
 		return
 	}
 
@@ -153,7 +173,8 @@ func (d *dispatch) processTask(t *task) {
 func (d *dispatch) processIdle() {
 	select {
 	case d.workerQueue <- task{}:
-		d.workerNum--
+		// 修复：使用原子操作减少 workerNum
+		atomic.AddInt32(&d.workerNum, -1)
 	default:
 	}
 }
@@ -175,6 +196,13 @@ func (d *dispatch) close() {
 	atomic.StoreInt32(&d.minConcurrentNum, -1)
 	d.cancel()
 
+	// 等待所有 worker 退出
+	d.waitWorker.Wait()
+
+	// 处理剩余的回调，使用超时机制避免无限阻塞
+	timeout := time.NewTimer(100 * time.Millisecond)
+	defer timeout.Stop()
+
 breakFor:
 	for {
 		select {
@@ -183,6 +211,25 @@ breakFor:
 				break breakFor
 			}
 			cb(nil)
+			// 重置超时，因为还有回调在处理
+			if !timeout.Stop() {
+				<-timeout.C
+			}
+			timeout.Reset(100 * time.Millisecond)
+		case <-timeout.C:
+			// 超时后，如果所有 worker 都已退出且没有更多回调，直接退出
+			// 使用非阻塞方式检查 channel 是否为空
+			select {
+			case cb := <-d.cbChannel:
+				if cb == nil {
+					break breakFor
+				}
+				cb(nil)
+				timeout.Reset(100 * time.Millisecond)
+			default:
+				// channel 为空，可以退出
+				break breakFor
+			}
 		}
 	}
 
